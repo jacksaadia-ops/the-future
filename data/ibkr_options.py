@@ -1,0 +1,93 @@
+from collections import deque
+
+from ib_async import Option
+
+from config import OPTIONS_BASE_VOLUME, SYMBOLS
+
+_HISTORY_LEN = 30
+_STRIKES_EACH_SIDE = 5
+_EMPTY_DATA = {
+    "call_volume": 0,
+    "put_volume": 0,
+    "call_oi": 0,
+    "put_oi": 0,
+    "call_volume_history": [0],
+    "put_volume_history": [0],
+}
+
+
+class IBKROptionsFeed:
+    """Aggregate call/put volume & open interest across near-the-money
+    strikes (nearest expiration) per symbol.
+
+    NOTE: this is the module most likely to need real debugging once tested
+    live. Specifically unverified:
+    - Generic tick types "100,101" are documented as Option Volume / Open
+      Interest, but the exact `Ticker` attribute names IBKR populates them
+      into (assumed here) haven't been confirmed against a live feed.
+    - Near-the-money strike selection is a simplification of full chain
+      scanning — good enough for a flow gauge, not exhaustive.
+    - ES/NQ (futures options) are skipped entirely, matching the mock feed.
+    """
+
+    def __init__(self, ib, contracts, bar_feed):
+        self._ib = ib
+        self._option_tickers = {}
+
+        for symbol in SYMBOLS:
+            if OPTIONS_BASE_VOLUME.get(symbol.ticker, 0) == 0:
+                continue
+
+            underlying = contracts[symbol.ticker]
+            chains = ib.reqSecDefOptParams(
+                underlying.symbol, "", underlying.secType, underlying.conId
+            )
+            if not chains:
+                continue
+
+            chain = chains[0]
+            expiration = sorted(chain.expirations)[0]
+            price = bar_feed.latest_price(symbol.ticker)
+            strikes = sorted(chain.strikes, key=lambda s: abs(s - price))[
+                : _STRIKES_EACH_SIDE * 2
+            ]
+
+            calls, puts = [], []
+            for strike in strikes:
+                call = Option(symbol.ticker, expiration, strike, "C", chain.exchange, currency="USD")
+                put = Option(symbol.ticker, expiration, strike, "P", chain.exchange, currency="USD")
+                ib.qualifyContracts(call, put)
+                calls.append(ib.reqMktData(call, "100,101", False, False))
+                puts.append(ib.reqMktData(put, "100,101", False, False))
+
+            self._option_tickers[symbol.ticker] = {"calls": calls, "puts": puts}
+
+        self._call_vol_history = {s.ticker: deque(maxlen=_HISTORY_LEN) for s in SYMBOLS}
+        self._put_vol_history = {s.ticker: deque(maxlen=_HISTORY_LEN) for s in SYMBOLS}
+
+    def update(self):
+        self._ib.sleep(0)
+        for ticker, group in self._option_tickers.items():
+            call_volume = sum(t.volume or 0 for t in group["calls"])
+            put_volume = sum(t.volume or 0 for t in group["puts"])
+            self._call_vol_history[ticker].append(call_volume)
+            self._put_vol_history[ticker].append(put_volume)
+
+    def get_options_data(self, ticker):
+        if ticker not in self._option_tickers:
+            return dict(_EMPTY_DATA)
+
+        group = self._option_tickers[ticker]
+        call_oi = sum(getattr(t, "callOpenInterest", 0) or 0 for t in group["calls"])
+        put_oi = sum(getattr(t, "putOpenInterest", 0) or 0 for t in group["puts"])
+        call_history = list(self._call_vol_history[ticker])
+        put_history = list(self._put_vol_history[ticker])
+
+        return {
+            "call_volume": call_history[-1] if call_history else 0,
+            "put_volume": put_history[-1] if put_history else 0,
+            "call_oi": call_oi,
+            "put_oi": put_oi,
+            "call_volume_history": call_history,
+            "put_volume_history": put_history,
+        }
