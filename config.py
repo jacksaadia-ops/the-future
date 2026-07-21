@@ -94,7 +94,7 @@ OPTIONS_BASE_OI = {
 }
 
 IBKR_HOST = "127.0.0.1"
-IBKR_PORT = 7497  # 7497 = TWS paper, 7496 = TWS live, 4002 = IB Gateway paper, 4001 = IB Gateway live
+IBKR_PORT = 4001  # 7497 = TWS paper, 7496 = TWS live, 4002 = IB Gateway paper, 4001 = IB Gateway live (in use)
 IBKR_CLIENT_ID = 7
 
 # Technical indicator parameters
