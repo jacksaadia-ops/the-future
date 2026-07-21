@@ -7,15 +7,19 @@ WATCH = "WATCH"
 
 _PUT_CALL_BULLISH = 0.7
 _PUT_CALL_BEARISH = 1.3
+_TICK_EXTREME = 800
+_ADD_THRESHOLD = 800
+_VIX_CHANGE_THRESHOLD = 1.5
 
 
-def aggregate_signal(indicators, tape=None, options=None):
-    """Combine technical, tape, and options-flow signals into a BUY/SELL/WATCH call.
+def aggregate_signal(indicators, tape=None, options=None, internals=None):
+    """Combine technical, tape, options-flow, and market-internals signals into a call.
 
     Technical score ranges +/-3 (VWAP, MA trend, RSI extremes). Tape adds up to
     +/-2 more (order-flow imbalance, large-print bias). Options adds up to +/-2
-    more (put/call ratio, unusual volume). >=4 is a BUY, <=-4 is a SELL,
-    otherwise WATCH.
+    more (put/call ratio, unusual volume). Internals adds up to +/-3 more
+    (TICK extremes, breadth, VIX change) and is shared market-wide context
+    rather than symbol-specific. >=5 is a BUY, <=-5 is a SELL, otherwise WATCH.
     """
     price = indicators["price"]
     vwap = indicators["vwap"]
@@ -82,9 +86,35 @@ def aggregate_signal(indicators, tape=None, options=None):
             score -= 1
             reasons.append("unusual put volume")
 
-    if score >= 4:
+    if internals is not None:
+        tick = internals["tick"]
+        add = internals["add"]
+        vix_change = internals["vix_change"]
+
+        if tick > _TICK_EXTREME:
+            score += 1
+            reasons.append(f"TICK extremely positive ({tick:+d}, broad buying)")
+        elif tick < -_TICK_EXTREME:
+            score -= 1
+            reasons.append(f"TICK extremely negative ({tick:+d}, broad selling)")
+
+        if add > _ADD_THRESHOLD:
+            score += 1
+            reasons.append(f"advancers leading (ADD {add:+d}, breadth bullish)")
+        elif add < -_ADD_THRESHOLD:
+            score -= 1
+            reasons.append(f"decliners leading (ADD {add:+d}, breadth bearish)")
+
+        if vix_change > _VIX_CHANGE_THRESHOLD:
+            score -= 1
+            reasons.append(f"VIX rising ({vix_change:+.1f}, risk-off)")
+        elif vix_change < -_VIX_CHANGE_THRESHOLD:
+            score += 1
+            reasons.append(f"VIX falling ({vix_change:+.1f}, risk-on)")
+
+    if score >= 5:
         signal = BUY
-    elif score <= -4:
+    elif score <= -5:
         signal = SELL
     else:
         signal = WATCH
@@ -96,4 +126,5 @@ def aggregate_signal(indicators, tape=None, options=None):
         **indicators,
         **(tape or {}),
         **(options or {}),
+        **(internals or {}),
     }

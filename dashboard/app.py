@@ -9,9 +9,11 @@ import streamlit as st
 
 from config import MA_FAST, MA_SLOW, REFRESH_INTERVAL_SECONDS, RSI_PERIOD, SYMBOLS
 from data.mock_feed import MockFeed
+from data.mock_internals import MockInternalsFeed
 from data.mock_options import MockOptionsFeed
 from data.mock_tape import MockTapeFeed
 from signals.aggregator import aggregate_signal
+from signals.internals import compute_internals_signal
 from signals.options_flow import compute_options_signal
 from signals.tape_reading import compute_tape_signal
 from signals.technical import compute_indicators
@@ -26,16 +28,29 @@ if "tape_feed" not in st.session_state:
     st.session_state.tape_feed = MockTapeFeed()
 if "options_feed" not in st.session_state:
     st.session_state.options_feed = MockOptionsFeed()
+if "internals_feed" not in st.session_state:
+    st.session_state.internals_feed = MockInternalsFeed()
 
 feed = st.session_state.feed
 tape_feed = st.session_state.tape_feed
 options_feed = st.session_state.options_feed
+internals_feed = st.session_state.internals_feed
 feed.update()
 tape_feed.update()
 options_feed.update()
+internals_feed.update()
+
+internals = compute_internals_signal(internals_feed.get_internals())
 
 st.title("Trading Signals Dashboard")
 st.caption("Running on simulated (mock) data — not connected to a live broker yet.")
+
+vix_arrow = "▲" if internals["vix_change"] > 0 else "▼"
+st.info(
+    f"**Market internals** — TICK: {internals['tick']:+d}  |  "
+    f"ADD: {internals['add']:+d}  |  "
+    f"VIX: {internals['vix']:.2f} ({vix_arrow}{abs(internals['vix_change']):.2f})"
+)
 
 SIGNAL_COLOR = {"BUY": "#1a9c46", "SELL": "#d23c3c", "WATCH": "#d9a121"}
 
@@ -48,7 +63,7 @@ for col, sym in zip(cols, SYMBOLS):
     tape = compute_tape_signal(prints)
     options_data = options_feed.get_options_data(sym.ticker)
     options = compute_options_signal(options_data)
-    result = aggregate_signal(indicators, tape, options)
+    result = aggregate_signal(indicators, tape, options, internals)
     log_signal(sym.ticker, result)
 
     with col:
