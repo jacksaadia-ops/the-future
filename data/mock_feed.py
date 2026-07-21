@@ -1,30 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from config import SYMBOLS
-
-_BASE_PRICES = {
-    "SPX": 5600.0,
-    "NDX": 19700.0,
-    "ES": 5605.0,
-    "NQ": 19720.0,
-    "SPY": 560.0,
-    "TSLA": 245.0,
-    "NVDA": 135.0,
-    "HOOD": 38.0,
-}
-
-# Per-bar volatility as a fraction of price. Futures/indices tighter, single stocks wider.
-_VOL = {
-    "SPX": 0.0006,
-    "NDX": 0.0007,
-    "ES": 0.0006,
-    "NQ": 0.0007,
-    "SPY": 0.0006,
-    "TSLA": 0.0025,
-    "NVDA": 0.0020,
-    "HOOD": 0.0030,
-}
+from config import BASE_PRICE, SYMBOLS, VOLATILITY
 
 _HISTORY_BARS = 200
 _MAX_BARS = 500
@@ -38,8 +15,8 @@ class MockFeed:
         self._bars = {s.ticker: self._seed_history(s.ticker) for s in SYMBOLS}
 
     def _seed_history(self, ticker, n=_HISTORY_BARS):
-        price = _BASE_PRICES[ticker]
-        vol = _VOL[ticker]
+        price = BASE_PRICE[ticker]
+        vol = VOLATILITY[ticker]
         closes = [price]
         for _ in range(n - 1):
             price = price * (1 + self._rng.normal(0, vol))
@@ -59,7 +36,7 @@ class MockFeed:
     def update(self):
         """Advance every symbol by one simulated bar."""
         for ticker, df in self._bars.items():
-            vol = _VOL[ticker]
+            vol = VOLATILITY[ticker]
             last_close = df["close"].iloc[-1]
             new_open = last_close
             new_close = last_close * (1 + self._rng.normal(0, vol))

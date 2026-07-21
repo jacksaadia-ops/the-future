@@ -32,6 +32,43 @@ SYMBOLS = [
 # "ibkr_paper" / "ibkr_live" are wired up in a later phase.
 DATA_MODE = "mock"
 
+# Shared mock-data parameters, used by both the bar feed and the tape feed
+# so simulated prices stay in the same ballpark across both.
+BASE_PRICE = {
+    "SPX": 5600.0,
+    "NDX": 19700.0,
+    "ES": 5605.0,
+    "NQ": 19720.0,
+    "SPY": 560.0,
+    "TSLA": 245.0,
+    "NVDA": 135.0,
+    "HOOD": 38.0,
+}
+
+# Per-bar/per-tick volatility as a fraction of price. Futures/indices tighter, single stocks wider.
+VOLATILITY = {
+    "SPX": 0.0006,
+    "NDX": 0.0007,
+    "ES": 0.0006,
+    "NQ": 0.0007,
+    "SPY": 0.0006,
+    "TSLA": 0.0025,
+    "NVDA": 0.0020,
+    "HOOD": 0.0030,
+}
+
+# Minimum price increment per tick.
+TICK_SIZE = {
+    "SPX": 0.05,
+    "NDX": 0.05,
+    "ES": 0.25,
+    "NQ": 0.25,
+    "SPY": 0.01,
+    "TSLA": 0.01,
+    "NVDA": 0.01,
+    "HOOD": 0.01,
+}
+
 IBKR_HOST = "127.0.0.1"
 IBKR_PORT = 7497  # 7497 = TWS paper, 7496 = TWS live, 4002 = IB Gateway paper, 4001 = IB Gateway live
 IBKR_CLIENT_ID = 7

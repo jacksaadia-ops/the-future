@@ -5,11 +5,12 @@ SELL = "SELL"
 WATCH = "WATCH"
 
 
-def aggregate_signal(indicators):
-    """Combine technical indicators into a single BUY/SELL/WATCH call with reasons.
+def aggregate_signal(indicators, tape=None):
+    """Combine technical indicators and order-flow (tape) signals into a BUY/SELL/WATCH call.
 
-    Score ranges from -3 to +3: +/-1 for price vs VWAP, +/-1 for MA trend,
-    +/-1 for RSI extremes. >=2 is a BUY, <=-2 is a SELL, otherwise WATCH.
+    Technical score ranges +/-3 (VWAP, MA trend, RSI extremes). Tape adds up to
+    +/-2 more (order-flow imbalance, large-print bias) when tape data is passed.
+    >=3 is a BUY, <=-3 is a SELL, otherwise WATCH.
     """
     price = indicators["price"]
     vwap = indicators["vwap"]
@@ -42,11 +43,29 @@ def aggregate_signal(indicators):
             score -= 1
             reasons.append(f"RSI {rsi:.0f} overbought")
 
-    if score >= 2:
+    if tape is not None:
+        imbalance = tape["imbalance_ratio"]
+        if imbalance > 0.62:
+            score += 1
+            reasons.append(f"order flow buy-heavy ({imbalance:.0%} buy)")
+        elif imbalance < 0.38:
+            score -= 1
+            reasons.append(f"order flow sell-heavy ({1 - imbalance:.0%} sell)")
+
+        large_buy = tape["large_buy_count"]
+        large_sell = tape["large_sell_count"]
+        if large_buy > large_sell and large_buy >= 2:
+            score += 1
+            reasons.append(f"{large_buy} large buy prints")
+        elif large_sell > large_buy and large_sell >= 2:
+            score -= 1
+            reasons.append(f"{large_sell} large sell prints")
+
+    if score >= 3:
         signal = BUY
-    elif score <= -2:
+    elif score <= -3:
         signal = SELL
     else:
         signal = WATCH
 
-    return {"signal": signal, "score": score, "reasons": reasons, **indicators}
+    return {"signal": signal, "score": score, "reasons": reasons, **indicators, **(tape or {})}
