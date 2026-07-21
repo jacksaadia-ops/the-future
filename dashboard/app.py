@@ -9,8 +9,10 @@ import streamlit as st
 
 from config import MA_FAST, MA_SLOW, REFRESH_INTERVAL_SECONDS, RSI_PERIOD, SYMBOLS
 from data.mock_feed import MockFeed
+from data.mock_options import MockOptionsFeed
 from data.mock_tape import MockTapeFeed
 from signals.aggregator import aggregate_signal
+from signals.options_flow import compute_options_signal
 from signals.tape_reading import compute_tape_signal
 from signals.technical import compute_indicators
 from storage.db import init_db, log_signal
@@ -22,11 +24,15 @@ if "feed" not in st.session_state:
     st.session_state.feed = MockFeed()
 if "tape_feed" not in st.session_state:
     st.session_state.tape_feed = MockTapeFeed()
+if "options_feed" not in st.session_state:
+    st.session_state.options_feed = MockOptionsFeed()
 
 feed = st.session_state.feed
 tape_feed = st.session_state.tape_feed
+options_feed = st.session_state.options_feed
 feed.update()
 tape_feed.update()
+options_feed.update()
 
 st.title("Trading Signals Dashboard")
 st.caption("Running on simulated (mock) data — not connected to a live broker yet.")
@@ -40,7 +46,9 @@ for col, sym in zip(cols, SYMBOLS):
     indicators = compute_indicators(df, MA_FAST, MA_SLOW, RSI_PERIOD)
     prints = tape_feed.get_prints(sym.ticker)
     tape = compute_tape_signal(prints)
-    result = aggregate_signal(indicators, tape)
+    options_data = options_feed.get_options_data(sym.ticker)
+    options = compute_options_signal(options_data)
+    result = aggregate_signal(indicators, tape, options)
     log_signal(sym.ticker, result)
 
     with col:
@@ -60,6 +68,14 @@ for col, sym in zip(cols, SYMBOLS):
             f"(Δ{tape['volume_delta']:+,})"
         )
         st.caption(f"Large prints: {tape['large_buy_count']} buy / {tape['large_sell_count']} sell")
+        if options["call_volume"] == 0 and options["put_volume"] == 0:
+            st.caption("Options: n/a")
+        else:
+            st.caption(
+                f"Options: P/C {options['put_call_ratio']:.2f}  |  "
+                f"calls {options['call_volume']:,} / puts {options['put_volume']:,}"
+                + (" ⚠️unusual" if options["unusual_call_volume"] or options["unusual_put_volume"] else "")
+            )
         st.caption(", ".join(result["reasons"]))
         st.line_chart(df["close"].tail(60), height=150)
 

@@ -69,6 +69,30 @@ TICK_SIZE = {
     "HOOD": 0.01,
 }
 
+# Rough baseline options contract volume per update tick, and starting open interest.
+# Index/ETF options trade far heavier than single-stock names.
+OPTIONS_BASE_VOLUME = {
+    "SPX": 4000,
+    "NDX": 1500,
+    "ES": 0,  # futures options not modeled yet
+    "NQ": 0,
+    "SPY": 3500,
+    "TSLA": 2500,
+    "NVDA": 3000,
+    "HOOD": 400,
+}
+
+OPTIONS_BASE_OI = {
+    "SPX": 200000,
+    "NDX": 80000,
+    "ES": 0,
+    "NQ": 0,
+    "SPY": 250000,
+    "TSLA": 150000,
+    "NVDA": 180000,
+    "HOOD": 20000,
+}
+
 IBKR_HOST = "127.0.0.1"
 IBKR_PORT = 7497  # 7497 = TWS paper, 7496 = TWS live, 4002 = IB Gateway paper, 4001 = IB Gateway live
 IBKR_CLIENT_ID = 7

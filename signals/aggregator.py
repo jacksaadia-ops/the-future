@@ -5,12 +5,17 @@ SELL = "SELL"
 WATCH = "WATCH"
 
 
-def aggregate_signal(indicators, tape=None):
-    """Combine technical indicators and order-flow (tape) signals into a BUY/SELL/WATCH call.
+_PUT_CALL_BULLISH = 0.7
+_PUT_CALL_BEARISH = 1.3
+
+
+def aggregate_signal(indicators, tape=None, options=None):
+    """Combine technical, tape, and options-flow signals into a BUY/SELL/WATCH call.
 
     Technical score ranges +/-3 (VWAP, MA trend, RSI extremes). Tape adds up to
-    +/-2 more (order-flow imbalance, large-print bias) when tape data is passed.
-    >=3 is a BUY, <=-3 is a SELL, otherwise WATCH.
+    +/-2 more (order-flow imbalance, large-print bias). Options adds up to +/-2
+    more (put/call ratio, unusual volume). >=4 is a BUY, <=-4 is a SELL,
+    otherwise WATCH.
     """
     price = indicators["price"]
     vwap = indicators["vwap"]
@@ -61,11 +66,34 @@ def aggregate_signal(indicators, tape=None):
             score -= 1
             reasons.append(f"{large_sell} large sell prints")
 
-    if score >= 3:
+    if options is not None:
+        put_call_ratio = options["put_call_ratio"]
+        if put_call_ratio < _PUT_CALL_BULLISH:
+            score += 1
+            reasons.append(f"call-heavy options flow (P/C {put_call_ratio:.2f})")
+        elif put_call_ratio > _PUT_CALL_BEARISH:
+            score -= 1
+            reasons.append(f"put-heavy options flow (P/C {put_call_ratio:.2f})")
+
+        if options["unusual_call_volume"]:
+            score += 1
+            reasons.append("unusual call volume")
+        if options["unusual_put_volume"]:
+            score -= 1
+            reasons.append("unusual put volume")
+
+    if score >= 4:
         signal = BUY
-    elif score <= -3:
+    elif score <= -4:
         signal = SELL
     else:
         signal = WATCH
 
-    return {"signal": signal, "score": score, "reasons": reasons, **indicators, **(tape or {})}
+    return {
+        "signal": signal,
+        "score": score,
+        "reasons": reasons,
+        **indicators,
+        **(tape or {}),
+        **(options or {}),
+    }
