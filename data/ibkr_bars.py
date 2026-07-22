@@ -2,13 +2,14 @@ import pandas as pd
 
 from config import AssetType, SYMBOLS
 
-# Indices don't have "trades" the way stocks/futures do, so historical data
-# needs a different whatToShow value for them.
 _WHAT_TO_SHOW = {
     AssetType.STOCK: "TRADES",
     AssetType.ETF: "TRADES",
     AssetType.FUTURE: "TRADES",
-    AssetType.INDEX: "MIDPOINT",
+    # Confirmed against a live account: indices publish periodic computed-value
+    # prints under "TRADES" too, despite not being directly tradable.
+    # MIDPOINT (the original guess) returned "No historical market data".
+    AssetType.INDEX: "TRADES",
 }
 
 

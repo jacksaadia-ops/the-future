@@ -11,6 +11,9 @@ def connect():
     """
     ib = IB()
     ib.connect(IBKR_HOST, IBKR_PORT, clientId=IBKR_CLIENT_ID)
+    # Fall back to delayed data automatically wherever no real-time
+    # subscription is active, instead of every request erroring out.
+    ib.reqMarketDataType(3)
     return ib
 
 

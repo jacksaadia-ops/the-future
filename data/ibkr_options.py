@@ -63,9 +63,23 @@ class IBKROptionsFeed:
 
             calls, puts = [], []
             for strike in strikes:
-                call = Option(symbol.ticker, expiration, strike, "C", chain.exchange, currency="USD")
-                put = Option(symbol.ticker, expiration, strike, "P", chain.exchange, currency="USD")
+                # tradingClass disambiguates products that share a symbol —
+                # e.g. SPX (monthly, AM-settled) vs SPXW (weekly, PM-settled)
+                # can have the same strike/expiration and are otherwise
+                # ambiguous to IBKR, which fails contract qualification.
+                call = Option(
+                    symbol.ticker, expiration, strike, "C", chain.exchange,
+                    currency="USD", tradingClass=symbol.ticker,
+                )
+                put = Option(
+                    symbol.ticker, expiration, strike, "P", chain.exchange,
+                    currency="USD", tradingClass=symbol.ticker,
+                )
                 ib.qualifyContracts(call, put)
+                if not call.conId or not put.conId:
+                    # Still unresolvable (ambiguous or doesn't exist) — skip
+                    # this strike rather than crash on an unqualified contract.
+                    continue
                 calls.append(ib.reqMktData(call, "100,101", False, False))
                 puts.append(ib.reqMktData(put, "100,101", False, False))
 
