@@ -45,7 +45,7 @@ class IBKRInternalsFeed:
         return ib.reqMktData(contract, "", False, False)
 
     def update(self):
-        self._ib.sleep(0)
+        self._ib.sleep(0.15)
         if self._vix_ticker is not None:
             vix = _finite(self._vix_ticker.last) or _finite(self._vix_ticker.close)
             if vix is not None:

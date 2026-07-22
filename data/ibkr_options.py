@@ -103,7 +103,7 @@ class IBKROptionsFeed:
         self._put_vol_history = {s.ticker: deque(maxlen=_HISTORY_LEN) for s in SYMBOLS}
 
     def update(self):
-        self._ib.sleep(0)
+        self._ib.sleep(0.15)
         for ticker, group in self._option_tickers.items():
             call_volume = sum(_finite_or_zero(t.volume) for t in group["calls"])
             put_volume = sum(_finite_or_zero(t.volume) for t in group["puts"])

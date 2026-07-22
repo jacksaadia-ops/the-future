@@ -40,7 +40,7 @@ class IBKRTapeFeed:
             self._tick_tickers[symbol.ticker] = ib.reqTickByTickData(contract, "AllLast", 0, False)
 
     def update(self):
-        self._ib.sleep(0)
+        self._ib.sleep(0.15)
         for ticker in self._tradeable_tickers:
             tick_ticker = self._tick_tickers[ticker]
             all_ticks = tick_ticker.tickByTicks or []

@@ -52,7 +52,7 @@ class IBKRBarFeed:
     def update(self):
         # keepUpToDate bars update themselves via ib_async's event loop;
         # this just lets pending network events process.
-        self._ib.sleep(0)
+        self._ib.sleep(0.15)
 
     def get_bars(self, ticker):
         bar_list = self._bars[ticker]
