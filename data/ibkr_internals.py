@@ -8,36 +8,38 @@ _HISTORY_LEN = 30
 class IBKRInternalsFeed:
     """Live NYSE TICK, ADD, and VIX via IBKR index market data.
 
-    NOTE: unverified against a live connection. TICK-NYSE and ADD-NYSE are
-    the documented IBKR symbols for these breadth internals, but whether
-    your account's data subscriptions actually include them needs
-    confirming once connected — if not, this will need a different symbol
-    or data source.
+    Confirmed against a live account: TICK-NYSE and VIX resolve fine, but
+    ADD-NYSE comes back "No security definition has been found" — it's
+    either the wrong symbol for this account/region or unavailable outright.
+    Each contract is qualified individually and skipped (rather than
+    crashing the feed) if it doesn't resolve; unresolved ones just report 0.
     """
 
     def __init__(self, ib):
         self._ib = ib
-        self._tick_contract = Index("TICK-NYSE", "NYSE", "USD")
-        self._add_contract = Index("ADD-NYSE", "NYSE", "USD")
-        self._vix_contract = Index("VIX", "CBOE", "USD")
-        for contract in (self._tick_contract, self._add_contract, self._vix_contract):
-            ib.qualifyContracts(contract)
-
-        self._tick_ticker = ib.reqMktData(self._tick_contract, "", False, False)
-        self._add_ticker = ib.reqMktData(self._add_contract, "", False, False)
-        self._vix_ticker = ib.reqMktData(self._vix_contract, "", False, False)
+        self._tick_ticker = self._try_subscribe(ib, Index("TICK-NYSE", "NYSE", "USD"))
+        self._add_ticker = self._try_subscribe(ib, Index("ADD-NYSE", "NYSE", "USD"))
+        self._vix_ticker = self._try_subscribe(ib, Index("VIX", "CBOE", "USD"))
         self._vix_history = deque(maxlen=_HISTORY_LEN)
+
+    @staticmethod
+    def _try_subscribe(ib, contract):
+        ib.qualifyContracts(contract)
+        if not contract.conId:
+            return None
+        return ib.reqMktData(contract, "", False, False)
 
     def update(self):
         self._ib.sleep(0)
-        vix = self._vix_ticker.last or self._vix_ticker.close
-        if vix:
-            self._vix_history.append(vix)
+        if self._vix_ticker is not None:
+            vix = self._vix_ticker.last or self._vix_ticker.close
+            if vix:
+                self._vix_history.append(vix)
 
     def get_internals(self):
-        tick = self._tick_ticker.last or 0
-        add = self._add_ticker.last or 0
-        vix = self._vix_history[-1] if self._vix_history else (self._vix_ticker.last or 0)
+        tick = (self._tick_ticker.last if self._tick_ticker is not None else 0) or 0
+        add = (self._add_ticker.last if self._add_ticker is not None else 0) or 0
+        vix = self._vix_history[-1] if self._vix_history else 0.0
         return {
             "tick": int(tick),
             "add": int(add),
