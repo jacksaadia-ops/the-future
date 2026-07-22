@@ -26,7 +26,21 @@ if "feed" not in st.session_state:
         from data.ibkr_options import IBKROptionsFeed
         from data.ibkr_tape import IBKRTapeFeed
 
-        ib = connect()
+        try:
+            ib = connect()
+        except TimeoutError:
+            st.error(
+                "Couldn't connect to IB Gateway — most likely another browser tab or "
+                "terminal window from an earlier run is still open and holding the "
+                "connection.\n\n"
+                "**This dashboard already auto-refreshes itself every "
+                f"{REFRESH_INTERVAL_SECONDS} seconds — you never need to manually "
+                "reload this page.**\n\n"
+                "To fix: close this tab, check Task Manager for any leftover "
+                "`python.exe` processes and end them, then restart with "
+                "`streamlit run dashboard/app.py` in a single fresh terminal."
+            )
+            st.stop()
         contracts = qualify_all(ib)
         st.session_state.ib = ib
         st.session_state.feed = IBKRBarFeed(ib, contracts)
@@ -57,7 +71,10 @@ internals = compute_internals_signal(internals_feed.get_internals())
 
 st.title("Trading Signals Dashboard")
 if DATA_MODE == "ibkr":
-    st.caption("Connected to IBKR — live account data.")
+    st.caption(
+        "Connected to IBKR — live account data. "
+        f"Auto-refreshes every {REFRESH_INTERVAL_SECONDS}s — do not manually reload this page."
+    )
 else:
     st.caption("Running on simulated (mock) data — not connected to a live broker yet.")
 
