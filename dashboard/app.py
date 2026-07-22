@@ -7,11 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import streamlit as st
 
-from config import MA_FAST, MA_SLOW, REFRESH_INTERVAL_SECONDS, RSI_PERIOD, SYMBOLS
-from data.mock_feed import MockFeed
-from data.mock_internals import MockInternalsFeed
-from data.mock_options import MockOptionsFeed
-from data.mock_tape import MockTapeFeed
+from config import DATA_MODE, MA_FAST, MA_SLOW, REFRESH_INTERVAL_SECONDS, RSI_PERIOD, SYMBOLS
 from signals.aggregator import aggregate_signal
 from signals.internals import compute_internals_signal
 from signals.options_flow import compute_options_signal
@@ -23,13 +19,30 @@ st.set_page_config(page_title="Trading Signals", layout="wide")
 init_db()
 
 if "feed" not in st.session_state:
-    st.session_state.feed = MockFeed()
-if "tape_feed" not in st.session_state:
-    st.session_state.tape_feed = MockTapeFeed()
-if "options_feed" not in st.session_state:
-    st.session_state.options_feed = MockOptionsFeed()
-if "internals_feed" not in st.session_state:
-    st.session_state.internals_feed = MockInternalsFeed()
+    if DATA_MODE == "ibkr":
+        from data.ibkr_bars import IBKRBarFeed
+        from data.ibkr_connection import connect, qualify_all
+        from data.ibkr_internals import IBKRInternalsFeed
+        from data.ibkr_options import IBKROptionsFeed
+        from data.ibkr_tape import IBKRTapeFeed
+
+        ib = connect()
+        contracts = qualify_all(ib)
+        st.session_state.ib = ib
+        st.session_state.feed = IBKRBarFeed(ib, contracts)
+        st.session_state.tape_feed = IBKRTapeFeed(ib, contracts)
+        st.session_state.options_feed = IBKROptionsFeed(ib, contracts, st.session_state.feed)
+        st.session_state.internals_feed = IBKRInternalsFeed(ib)
+    else:
+        from data.mock_feed import MockFeed
+        from data.mock_internals import MockInternalsFeed
+        from data.mock_options import MockOptionsFeed
+        from data.mock_tape import MockTapeFeed
+
+        st.session_state.feed = MockFeed()
+        st.session_state.tape_feed = MockTapeFeed()
+        st.session_state.options_feed = MockOptionsFeed()
+        st.session_state.internals_feed = MockInternalsFeed()
 
 feed = st.session_state.feed
 tape_feed = st.session_state.tape_feed
@@ -43,7 +56,10 @@ internals_feed.update()
 internals = compute_internals_signal(internals_feed.get_internals())
 
 st.title("Trading Signals Dashboard")
-st.caption("Running on simulated (mock) data — not connected to a live broker yet.")
+if DATA_MODE == "ibkr":
+    st.caption("Connected to IBKR — live account data.")
+else:
+    st.caption("Running on simulated (mock) data — not connected to a live broker yet.")
 
 vix_arrow = "▲" if internals["vix_change"] > 0 else "▼"
 st.info(
