@@ -37,6 +37,15 @@ class IBKRBarFeed:
             )
             self._bars[symbol.ticker] = bar_list
 
+        # reqHistoricalData returns immediately with an empty list — the actual
+        # bars arrive asynchronously. Wait (with a timeout) until every symbol
+        # has at least one bar, so callers don't hit an empty list right after
+        # construction.
+        for _ in range(100):  # up to ~10s total
+            if all(len(bars) > 0 for bars in self._bars.values()):
+                break
+            self._ib.sleep(0.1)
+
     def update(self):
         # keepUpToDate bars update themselves via ib_async's event loop;
         # this just lets pending network events process.
@@ -56,4 +65,5 @@ class IBKRBarFeed:
         )
 
     def latest_price(self, ticker):
-        return self._bars[ticker][-1].close
+        bar_list = self._bars[ticker]
+        return bar_list[-1].close if bar_list else None

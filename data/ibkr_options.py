@@ -48,9 +48,18 @@ class IBKROptionsFeed:
             chain = chains[0]
             expiration = sorted(chain.expirations)[0]
             price = bar_feed.latest_price(symbol.ticker)
-            strikes = sorted(chain.strikes, key=lambda s: abs(s - price))[
-                : _STRIKES_EACH_SIDE * 2
-            ]
+            all_strikes = sorted(chain.strikes)
+            if price is None:
+                # Bars haven't arrived yet — fall back to the middle of the
+                # chain rather than crashing; the next dashboard refresh will
+                # have a real price to sort by.
+                mid = len(all_strikes) // 2
+                half = _STRIKES_EACH_SIDE
+                strikes = all_strikes[max(0, mid - half) : mid + half]
+            else:
+                strikes = sorted(all_strikes, key=lambda s: abs(s - price))[
+                    : _STRIKES_EACH_SIDE * 2
+                ]
 
             calls, puts = [], []
             for strike in strikes:
