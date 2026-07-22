@@ -1,8 +1,23 @@
+import math
 from collections import deque
 
 from ib_async import Index
 
 _HISTORY_LEN = 30
+
+
+def _finite(value):
+    """None-safe, NaN-safe numeric check. ib_async tickers default unset
+    fields to float('nan'), not None — and NaN is truthy in Python, so a
+    plain `value or default` silently lets NaN through and later crashes
+    on int(nan). Returns value if it's a real number, else None.
+    """
+    if value is None:
+        return None
+    try:
+        return None if math.isnan(value) else value
+    except TypeError:
+        return value
 
 
 class IBKRInternalsFeed:
@@ -32,17 +47,17 @@ class IBKRInternalsFeed:
     def update(self):
         self._ib.sleep(0)
         if self._vix_ticker is not None:
-            vix = self._vix_ticker.last or self._vix_ticker.close
-            if vix:
+            vix = _finite(self._vix_ticker.last) or _finite(self._vix_ticker.close)
+            if vix is not None:
                 self._vix_history.append(vix)
 
     def get_internals(self):
-        tick = (self._tick_ticker.last if self._tick_ticker is not None else 0) or 0
-        add = (self._add_ticker.last if self._add_ticker is not None else 0) or 0
-        vix = self._vix_history[-1] if self._vix_history else 0.0
+        tick = _finite(self._tick_ticker.last) if self._tick_ticker is not None else None
+        add = _finite(self._add_ticker.last) if self._add_ticker is not None else None
+        vix = self._vix_history[-1] if self._vix_history else None
         return {
-            "tick": int(tick),
-            "add": int(add),
-            "vix": float(vix) if vix else 0.0,
+            "tick": int(tick) if tick is not None else 0,
+            "add": int(add) if add is not None else 0,
+            "vix": float(vix) if vix is not None else 0.0,
             "vix_history": list(self._vix_history),
         }

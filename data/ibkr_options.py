@@ -1,8 +1,22 @@
+import math
 from collections import deque
 
 from ib_async import Option
 
 from config import OPTIONS_BASE_VOLUME, SYMBOLS
+
+
+def _finite_or_zero(value):
+    """ib_async tickers default unset numeric fields to float('nan'), not
+    None or 0 — and NaN is truthy in Python, so `value or 0` doesn't catch
+    it. Used here so an unpopulated volume/OI tick reads as 0, not NaN.
+    """
+    if value is None:
+        return 0
+    try:
+        return 0 if math.isnan(value) else value
+    except TypeError:
+        return value
 
 _HISTORY_LEN = 30
 _STRIKES_EACH_SIDE = 5
@@ -91,8 +105,8 @@ class IBKROptionsFeed:
     def update(self):
         self._ib.sleep(0)
         for ticker, group in self._option_tickers.items():
-            call_volume = sum(t.volume or 0 for t in group["calls"])
-            put_volume = sum(t.volume or 0 for t in group["puts"])
+            call_volume = sum(_finite_or_zero(t.volume) for t in group["calls"])
+            put_volume = sum(_finite_or_zero(t.volume) for t in group["puts"])
             self._call_vol_history[ticker].append(call_volume)
             self._put_vol_history[ticker].append(put_volume)
 
@@ -101,8 +115,8 @@ class IBKROptionsFeed:
             return dict(_EMPTY_DATA)
 
         group = self._option_tickers[ticker]
-        call_oi = sum(getattr(t, "callOpenInterest", 0) or 0 for t in group["calls"])
-        put_oi = sum(getattr(t, "putOpenInterest", 0) or 0 for t in group["puts"])
+        call_oi = sum(_finite_or_zero(getattr(t, "callOpenInterest", 0)) for t in group["calls"])
+        put_oi = sum(_finite_or_zero(getattr(t, "putOpenInterest", 0)) for t in group["puts"])
         call_history = list(self._call_vol_history[ticker])
         put_history = list(self._put_vol_history[ticker])
 
