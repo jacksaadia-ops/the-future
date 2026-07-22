@@ -97,6 +97,11 @@ IBKR_HOST = "127.0.0.1"
 IBKR_PORT = 4001  # 7497 = TWS paper, 7496 = TWS live, 4002 = IB Gateway paper, 4001 = IB Gateway live (in use)
 IBKR_CLIENT_ID = 7
 
+# Tickers with an active real-time market data subscription on your IBKR
+# account. Everything else automatically falls back to delayed data — add
+# tickers here as you subscribe to more real-time feeds.
+REALTIME_SYMBOLS = {"ES", "NQ"}
+
 # Technical indicator parameters
 MA_FAST = 9
 MA_SLOW = 21

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from config import AssetType, SYMBOLS
+from data.ibkr_connection import set_market_data_type_for
 
 _WHAT_TO_SHOW = {
     AssetType.STOCK: "TRADES",
@@ -27,6 +28,7 @@ class IBKRBarFeed:
         self._bars = {}
         for symbol in SYMBOLS:
             contract = contracts[symbol.ticker]
+            set_market_data_type_for(ib, symbol.ticker)
             bar_list = ib.reqHistoricalData(
                 contract,
                 endDateTime="",

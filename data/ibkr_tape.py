@@ -1,6 +1,7 @@
 from collections import deque
 
 from config import AssetType, SYMBOLS
+from data.ibkr_connection import set_market_data_type_for
 
 _MAX_PRINTS = 1000
 _LARGE_PRINT_SIZE = 50
@@ -34,6 +35,7 @@ class IBKRTapeFeed:
             if symbol.asset_type == AssetType.INDEX:
                 continue
             contract = contracts[symbol.ticker]
+            set_market_data_type_for(ib, symbol.ticker)
             self._market_tickers[symbol.ticker] = ib.reqMktData(contract, "", False, False)
             self._tick_tickers[symbol.ticker] = ib.reqTickByTickData(contract, "AllLast", 0, False)
 

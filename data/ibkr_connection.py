@@ -1,6 +1,6 @@
 from ib_async import ContFuture, IB, Index, Stock
 
-from config import AssetType, IBKR_CLIENT_ID, IBKR_HOST, IBKR_PORT, SYMBOLS
+from config import AssetType, IBKR_CLIENT_ID, IBKR_HOST, IBKR_PORT, REALTIME_SYMBOLS, SYMBOLS
 
 
 def connect():
@@ -11,10 +11,21 @@ def connect():
     """
     ib = IB()
     ib.connect(IBKR_HOST, IBKR_PORT, clientId=IBKR_CLIENT_ID)
-    # Fall back to delayed data automatically wherever no real-time
-    # subscription is active, instead of every request erroring out.
+    # Default to delayed; per-symbol requests switch to real-time via
+    # set_market_data_type_for() wherever a subscription is active.
     ib.reqMarketDataType(3)
     return ib
+
+
+def set_market_data_type_for(ib, ticker):
+    """Switch the client's market data type before requesting data for a
+    specific symbol. IBKR's marketDataType is a session-wide switch, not
+    per-symbol, so callers must set it right before each per-symbol request:
+    real-time (1) for tickers with an active subscription (REALTIME_SYMBOLS),
+    delayed (3) otherwise — delayed doesn't auto-upgrade, and real-time
+    doesn't auto-fall-back, so this has to be chosen explicitly each time.
+    """
+    ib.reqMarketDataType(1 if ticker in REALTIME_SYMBOLS else 3)
 
 
 def make_contract(symbol):
