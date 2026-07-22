@@ -5,7 +5,11 @@ def vwap(df):
     typical = (df["high"] + df["low"] + df["close"]) / 3
     cum_vol = df["volume"].cumsum()
     cum_vol_price = (typical * df["volume"]).cumsum()
-    return cum_vol_price / cum_vol
+    volume_weighted = cum_vol_price / cum_vol
+    # Indices report zero trade volume, making this 0/0 (NaN) for every bar.
+    # Fall back to a plain running average of price so VWAP stays meaningful
+    # instead of silently breaking the price-vs-VWAP comparison downstream.
+    return volume_weighted.where(cum_vol > 0, typical.expanding().mean())
 
 
 def moving_average(series, window):
