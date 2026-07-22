@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from config import DATA_MODE, MA_FAST, MA_SLOW, REFRESH_INTERVAL_SECONDS, RSI_PERIOD, SYMBOLS
+from dashboard.style import CUSTOM_CSS
 from signals.aggregator import aggregate_signal
 from signals.internals import compute_internals_signal
 from signals.options_flow import compute_options_signal
@@ -16,6 +17,7 @@ from signals.technical import compute_indicators
 from storage.db import init_db, log_signal
 
 st.set_page_config(page_title="Trading Signals", layout="wide")
+st.markdown(f"<style>{CUSTOM_CSS}</style>", unsafe_allow_html=True)
 init_db()
 
 if "feed" not in st.session_state:
@@ -87,7 +89,7 @@ try:
         f"VIX: {internals['vix']:.2f} ({vix_arrow}{abs(internals['vix_change']):.2f})"
     )
 
-    SIGNAL_COLOR = {"BUY": "#1a9c46", "SELL": "#d23c3c", "WATCH": "#d9a121"}
+    SIGNAL_CLASS = {"BUY": "signal-buy", "SELL": "signal-sell", "WATCH": "signal-watch"}
 
     cols = st.columns(len(SYMBOLS))
 
@@ -102,10 +104,10 @@ try:
         log_signal(sym.ticker, result)
 
         with col:
-            color = SIGNAL_COLOR[result["signal"]]
+            badge_class = SIGNAL_CLASS[result["signal"]]
             st.markdown(f"#### {sym.ticker}")
             st.markdown(
-                f"<span style='color:{color}; font-size:1.4em; font-weight:bold'>{result['signal']}</span>",
+                f"<span class='signal-badge {badge_class}'>{result['signal']}</span>",
                 unsafe_allow_html=True,
             )
             price_decimals = 0 if result["price"] >= 1000 else 2
