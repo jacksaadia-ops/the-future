@@ -43,10 +43,12 @@ if "feed" not in st.session_state:
             client = ProjectXClient()
             contracts = {}
             for ticker in config.CONTRACTS:
-                results = client.search_contracts(config.CONTRACT_SEARCH_TEXT[ticker])
+                results = client.search_contracts(config.CONTRACT_SEARCH_TEXT[ticker], live=True)
                 if not results:
                     raise ProjectXError(f"No contract found for search text {config.CONTRACT_SEARCH_TEXT[ticker]!r}")
+                print(f"[ProjectX] {ticker} contract candidates: {results}")
                 contracts[ticker] = results[0]["id"]
+                print(f"[ProjectX] {ticker} resolved to contract id: {contracts[ticker]}")
         except Exception as e:
             st.error(f"LIVE DATA UNAVAILABLE — I CANNOT VALIDATE A TRADE\n\nCouldn't connect to TopstepX: {e}")
             st.stop()

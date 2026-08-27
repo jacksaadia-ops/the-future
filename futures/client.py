@@ -83,8 +83,14 @@ class ProjectXClient:
         resp.raise_for_status()
         body = resp.json()
         if not body.get("success", True):
+            # Temporary verbose logging while getting a first live account
+            # connected — prints the exact request and response so a failure
+            # can be diagnosed without guessing.
+            print(f"[ProjectX] {path} request payload: {payload}")
+            print(f"[ProjectX] {path} response body: {body}")
             raise ProjectXError(
-                f"ProjectX request to {path} failed: {body.get('errorMessage') or body.get('errorCode')}"
+                f"ProjectX request to {path} failed: {body.get('errorMessage') or body.get('errorCode')} "
+                f"(full response: {body})"
             )
         return body
 
