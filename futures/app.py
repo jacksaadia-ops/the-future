@@ -43,7 +43,7 @@ if "feed" not in st.session_state:
             client = ProjectXClient()
             contracts = {}
             for ticker in config.CONTRACTS:
-                results = client.search_contracts(config.CONTRACT_SEARCH_TEXT[ticker], live=True)
+                results = client.search_contracts(config.CONTRACT_SEARCH_TEXT[ticker], live=False)
                 if not results:
                     raise ProjectXError(f"No contract found for search text {config.CONTRACT_SEARCH_TEXT[ticker]!r}")
                 print(f"[ProjectX] {ticker} contract candidates: {results}")
