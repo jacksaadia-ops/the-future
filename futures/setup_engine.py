@@ -14,14 +14,30 @@ def _confidence(votes_for, votes_total):
     return "LOW"
 
 
+# Backtest finding: a flat tick count (e.g. "4 ticks") is a much tighter
+# stop, proportionally, on an instrument trading at a higher price level
+# with wider raw-point swings (NQ vs ES, both 0.25 ticks) — NQ's
+# Liquidity Sweep Reversal setup was the single worst performer at -0.18R
+# over 1,071 backtested trades. Scale the stop off each instrument's own
+# recent realized range instead of a hardcoded tick count, with a tick
+# floor so it never gets unrealistically tight in a dead-quiet market.
+_STOP_ATR_MULTIPLE = {"Liquidity Sweep Reversal": 1.5, "Break of Structure Continuation": 2.0}
+_STOP_MIN_TICKS = {"Liquidity Sweep Reversal": 2, "Break of Structure Continuation": 3}
+
+
+def stop_distance(ticker, setup_name, structure):
+    tick = config.TICK_SIZE[ticker]
+    floor = tick * _STOP_MIN_TICKS[setup_name]
+    atr_based = structure["avg_range"] * _STOP_ATR_MULTIPLE[setup_name]
+    return max(floor, atr_based)
+
+
 def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warnings):
     """Confluence engine: requires market structure + order flow + a defined
     level to align before calling anything more than NO TRADE / a level to
     watch. Returns a dict tagged with `kind` in
     {"trade_alert", "level_to_watch", "no_trade", "market_unclear"}.
     """
-    tick = config.TICK_SIZE[ticker]
-
     if structure["trend"] == "UNCLEAR" or price is None:
         return {
             "kind": "market_unclear",
@@ -43,7 +59,8 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             ]
             return _build_result(
                 ticker, "LONG", "Liquidity Sweep Reversal", price, level, votes,
-                stop=level - tick * 4, targets_up=True, structure=structure,
+                stop=level - stop_distance(ticker, "Liquidity Sweep Reversal", structure),
+                targets_up=True, structure=structure,
                 key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
         if sweep["side"] == "high" and price < level:
@@ -55,7 +72,8 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             ]
             return _build_result(
                 ticker, "SHORT", "Liquidity Sweep Reversal", price, level, votes,
-                stop=level + tick * 4, targets_up=False, structure=structure,
+                stop=level + stop_distance(ticker, "Liquidity Sweep Reversal", structure),
+                targets_up=False, structure=structure,
                 key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
 
@@ -72,7 +90,8 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             ]
             return _build_result(
                 ticker, "LONG", "Break of Structure Continuation", price, level, votes,
-                stop=level - tick * 6, targets_up=True, structure=structure,
+                stop=level - stop_distance(ticker, "Break of Structure Continuation", structure),
+                targets_up=True, structure=structure,
                 key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
         else:
@@ -85,7 +104,8 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             ]
             return _build_result(
                 ticker, "SHORT", "Break of Structure Continuation", price, level, votes,
-                stop=level + tick * 6, targets_up=False, structure=structure,
+                stop=level + stop_distance(ticker, "Break of Structure Continuation", structure),
+                targets_up=False, structure=structure,
                 key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
 
@@ -117,17 +137,21 @@ def select_targets(price, risk, targets_up, structure, key_levels):
         if value == value:  # filters NaN
             candidates.add(value)
 
-    # A level closer than half a stop's worth of risk isn't a meaningful
-    # target — skip it rather than handing back a sub-1R trade.
-    min_gap = risk * 0.5
+    # Backtest finding: with only a 0.5R floor, T1 was often close enough
+    # that a >50% win rate still lost money overall (avg winner < 1R).
+    # T1 must now clear a full 1R; T2/T3 only need to be a meaningfully
+    # distinct step beyond whichever target came before them.
+    min_first_gap = risk * 1.0
+    min_next_gap = risk * 0.5
     if targets_up:
-        ordered = sorted(v for v in candidates if v > price + min_gap)
+        ordered = sorted(v for v in candidates if v >= price + min_first_gap)
     else:
-        ordered = sorted((v for v in candidates if v < price - min_gap), reverse=True)
+        ordered = sorted((v for v in candidates if v <= price - min_first_gap), reverse=True)
 
     targets = []
     for value in ordered:
-        if not targets or abs(value - targets[-1]) >= min_gap:
+        gap_needed = min_first_gap if not targets else min_next_gap
+        if not targets or abs(value - targets[-1]) >= gap_needed:
             targets.append(value)
         if len(targets) == 3:
             break
@@ -136,8 +160,9 @@ def select_targets(price, risk, targets_up, structure, key_levels):
         if len(targets) == 3:
             break
         fallback = price + risk * multiple if targets_up else price - risk * multiple
+        gap_needed = min_first_gap if not targets else min_next_gap
         if targets and (fallback <= targets[-1] if targets_up else fallback >= targets[-1]):
-            fallback = targets[-1] + (min_gap if targets_up else -min_gap)
+            fallback = targets[-1] + (gap_needed if targets_up else -gap_needed)
         targets.append(fallback)
 
     return targets

@@ -1,5 +1,16 @@
 from futures import config
 
+_AVG_RANGE_BARS = 20
+
+
+def _average_range(df, bars=_AVG_RANGE_BARS):
+    """Mean high-low range over the last `bars` bars — a simple proxy for
+    realized volatility, used to scale stop distance per-instrument
+    instead of a flat tick count (see setup_engine._stop_distance).
+    """
+    recent = df.tail(bars)
+    return float((recent["high"] - recent["low"]).mean()) if len(recent) else 0.0
+
 
 def _find_swings(df, lookback):
     """A bar is a swing high/low if it equals the max/min of the window
@@ -52,6 +63,7 @@ def analyze_market_structure(df, lookback=None):
             "break_of_structure": False,
             "change_of_character": False,
             "liquidity_sweep": None,
+            "avg_range": _average_range(df),
         }
 
     swing_highs, swing_lows = _find_swings(df, lookback)
@@ -88,10 +100,11 @@ def analyze_market_structure(df, lookback=None):
         "last_swing_low": last_swing_low,
         # Full swing history (not just the last point) so target selection
         # can aim at the nearest real structure instead of an arbitrary
-        # risk multiple — see setup_engine._select_targets.
+        # risk multiple — see setup_engine.select_targets.
         "swing_highs": [price for _, price in swing_highs],
         "swing_lows": [price for _, price in swing_lows],
         "break_of_structure": break_of_structure,
         "change_of_character": change_of_character,
         "liquidity_sweep": _detect_liquidity_sweep(df, swing_highs, swing_lows),
+        "avg_range": _average_range(df),
     }

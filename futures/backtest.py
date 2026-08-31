@@ -21,7 +21,7 @@ import pandas as pd
 from futures import config
 from futures.key_levels import compute_key_levels
 from futures.market_structure import analyze_market_structure
-from futures.setup_engine import select_targets
+from futures.setup_engine import select_targets, stop_distance
 
 # Trailing bars fed into market_structure/key_levels at each simulated
 # "now" — not the full history, both for speed (recomputing swings from
@@ -32,7 +32,6 @@ from futures.setup_engine import select_targets
 # for that bar, same as the live dashboard on a cold start.
 WINDOW_BARS = 600
 MAX_HOLD_BARS = 360  # ~6 hours of 1-min bars — cap on how long a simulated trade stays open
-STOP_TICKS = {"Liquidity Sweep Reversal": 4, "Break of Structure Continuation": 6}
 
 
 def _detect_trigger(structure, price):
@@ -120,7 +119,6 @@ def simulate_trades(df, ticker, swing_lookback=None):
     simulated trade is still open, matching how the live dashboard is used.
     """
     swing_lookback = swing_lookback or config.SWING_LOOKBACK
-    tick = config.TICK_SIZE[ticker]
     min_bars = swing_lookback * 2 + 3
     trades = []
 
@@ -139,7 +137,8 @@ def simulate_trades(df, ticker, swing_lookback=None):
 
         direction, setup_name, level = trigger
         targets_up = direction == "LONG"
-        stop = level - tick * STOP_TICKS[setup_name] if targets_up else level + tick * STOP_TICKS[setup_name]
+        distance = stop_distance(ticker, setup_name, structure)
+        stop = level - distance if targets_up else level + distance
         risk = abs(price - stop)
         if risk <= 0:
             i += 1
