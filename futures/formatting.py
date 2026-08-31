@@ -32,6 +32,7 @@ def format_alert(alert):
 
     if kind == "trade_alert":
         t1, t2, t3 = alert["targets"]
+        r1, r2, r3 = alert["reward_multiples"]
         warning_block = (
             "\n\n⚠️ RISK WARNING: " + " | ".join(alert["risk_warnings"]) if alert["risk_warnings"] else ""
         )
@@ -45,7 +46,7 @@ def format_alert(alert):
             f"Target 1: {t1:.2f}\n"
             f"Target 2: {t2:.2f}\n"
             f"Target 3: {t3:.2f}\n"
-            "Risk/Reward: 1:1 / 1:2 / 1:3 (T1/T2/T3)\n"
+            f"Risk/Reward: 1:{r1:.1f} / 1:{r2:.1f} / 1:{r3:.1f} (T1/T2/T3)\n"
             f"Confidence: {alert['confidence']}\n"
             f"Market Structure: {alert['market_structure']}\n"
             f"Order Flow: {alert['order_flow']}\n"

@@ -42,6 +42,8 @@ def analyze_market_structure(df, lookback=None):
             "trend": "UNCLEAR",
             "last_swing_high": None,
             "last_swing_low": None,
+            "swing_highs": [],
+            "swing_lows": [],
             "break_of_structure": False,
             "change_of_character": False,
             "liquidity_sweep": None,
@@ -79,6 +81,11 @@ def analyze_market_structure(df, lookback=None):
         "trend": trend,
         "last_swing_high": last_swing_high,
         "last_swing_low": last_swing_low,
+        # Full swing history (not just the last point) so target selection
+        # can aim at the nearest real structure instead of an arbitrary
+        # risk multiple — see setup_engine._select_targets.
+        "swing_highs": [price for _, price in swing_highs],
+        "swing_lows": [price for _, price in swing_lows],
         "break_of_structure": break_of_structure,
         "change_of_character": change_of_character,
         "liquidity_sweep": _detect_liquidity_sweep(df, swing_highs, swing_lows),

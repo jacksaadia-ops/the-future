@@ -44,7 +44,7 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             return _build_result(
                 ticker, "LONG", "Liquidity Sweep Reversal", price, level, votes,
                 stop=level - tick * 4, targets_up=True, structure=structure,
-                tape=tape, depth=depth, risk_warnings=risk_warnings,
+                key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
         if sweep["side"] == "high" and price < level:
             votes = [
@@ -56,7 +56,7 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             return _build_result(
                 ticker, "SHORT", "Liquidity Sweep Reversal", price, level, votes,
                 stop=level + tick * 4, targets_up=False, structure=structure,
-                tape=tape, depth=depth, risk_warnings=risk_warnings,
+                key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
 
     # --- Setup 2: break-of-structure continuation ---
@@ -73,7 +73,7 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             return _build_result(
                 ticker, "LONG", "Break of Structure Continuation", price, level, votes,
                 stop=level - tick * 6, targets_up=True, structure=structure,
-                tape=tape, depth=depth, risk_warnings=risk_warnings,
+                key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
         else:
             level = structure["last_swing_low"]
@@ -86,7 +86,7 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
             return _build_result(
                 ticker, "SHORT", "Break of Structure Continuation", price, level, votes,
                 stop=level + tick * 6, targets_up=False, structure=structure,
-                tape=tape, depth=depth, risk_warnings=risk_warnings,
+                key_levels=key_levels, tape=tape, depth=depth, risk_warnings=risk_warnings,
             )
 
     key_level = structure["last_swing_high"] or structure["last_swing_low"]
@@ -100,7 +100,50 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
     }
 
 
-def _build_result(ticker, direction, setup_name, price, level, votes, stop, targets_up, structure, tape, depth, risk_warnings):
+def _select_targets(price, risk, targets_up, structure, key_levels):
+    """Aim at the nearest real structure beyond entry — swing points and
+    session/overnight/prior-session/opening-range levels — instead of
+    arbitrary risk multiples. Falls back to R-multiples (1R/2R/3R) beyond
+    the last real level only when it runs out of nearby structure.
+    """
+    candidates = set(structure["swing_highs" if targets_up else "swing_lows"])
+    level_keys = (
+        ["session_high", "overnight_high", "prev_session_high", "opening_range_high"]
+        if targets_up
+        else ["session_low", "overnight_low", "prev_session_low", "opening_range_low"]
+    )
+    for key in level_keys:
+        value = key_levels.get(key)
+        if value == value:  # filters NaN
+            candidates.add(value)
+
+    # A level closer than half a stop's worth of risk isn't a meaningful
+    # target — skip it rather than handing back a sub-1R trade.
+    min_gap = risk * 0.5
+    if targets_up:
+        ordered = sorted(v for v in candidates if v > price + min_gap)
+    else:
+        ordered = sorted((v for v in candidates if v < price - min_gap), reverse=True)
+
+    targets = []
+    for value in ordered:
+        if not targets or abs(value - targets[-1]) >= min_gap:
+            targets.append(value)
+        if len(targets) == 3:
+            break
+
+    for multiple in (1, 2, 3):
+        if len(targets) == 3:
+            break
+        fallback = price + risk * multiple if targets_up else price - risk * multiple
+        if targets and (fallback <= targets[-1] if targets_up else fallback >= targets[-1]):
+            fallback = targets[-1] + (min_gap if targets_up else -min_gap)
+        targets.append(fallback)
+
+    return targets
+
+
+def _build_result(ticker, direction, setup_name, price, level, votes, stop, targets_up, structure, key_levels, tape, depth, risk_warnings):
     votes_for = sum(1 for v in votes if v)
     votes_total = len(votes)
 
@@ -116,10 +159,8 @@ def _build_result(ticker, direction, setup_name, price, level, votes, stop, targ
 
     confidence = _confidence(votes_for, votes_total)
     risk = abs(price - stop)
-    if targets_up:
-        targets = [price + risk, price + risk * 2, price + risk * 3]
-    else:
-        targets = [price - risk, price - risk * 2, price - risk * 3]
+    targets = _select_targets(price, risk, targets_up, structure, key_levels)
+    reward_multiples = [abs(t - price) / risk for t in targets]
 
     return {
         "kind": "trade_alert",
@@ -129,6 +170,7 @@ def _build_result(ticker, direction, setup_name, price, level, votes, stop, targ
         "entry": price,
         "stop": stop,
         "targets": targets,
+        "reward_multiples": reward_multiples,
         "confidence": confidence,
         "market_structure": f"{structure['trend']} — {'break of structure' if structure['break_of_structure'] else 'liquidity sweep'} at {level:.2f}",
         "order_flow": f"Tape {tape['imbalance_ratio']:.0%} buy-side, {tape['large_buy_count']} large buy / {tape['large_sell_count']} large sell prints",
