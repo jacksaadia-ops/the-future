@@ -100,7 +100,7 @@ def evaluate_setup(ticker, price, structure, key_levels, tape, depth, risk_warni
     }
 
 
-def _select_targets(price, risk, targets_up, structure, key_levels):
+def select_targets(price, risk, targets_up, structure, key_levels):
     """Aim at the nearest real structure beyond entry — swing points and
     session/overnight/prior-session/opening-range levels — instead of
     arbitrary risk multiples. Falls back to R-multiples (1R/2R/3R) beyond
@@ -159,7 +159,7 @@ def _build_result(ticker, direction, setup_name, price, level, votes, stop, targ
 
     confidence = _confidence(votes_for, votes_total)
     risk = abs(price - stop)
-    targets = _select_targets(price, risk, targets_up, structure, key_levels)
+    targets = select_targets(price, risk, targets_up, structure, key_levels)
     reward_multiples = [abs(t - price) / risk for t in targets]
 
     return {

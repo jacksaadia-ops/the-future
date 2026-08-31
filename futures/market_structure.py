@@ -2,16 +2,21 @@ from futures import config
 
 
 def _find_swings(df, lookback):
-    highs, lows = df["high"], df["low"]
-    swing_highs, swing_lows = [], []
-    n = len(df)
-    for i in range(lookback, n - lookback):
-        window_h = highs.iloc[i - lookback : i + lookback + 1]
-        if highs.iloc[i] == window_h.max():
-            swing_highs.append((df.index[i], highs.iloc[i]))
-        window_l = lows.iloc[i - lookback : i + lookback + 1]
-        if lows.iloc[i] == window_l.min():
-            swing_lows.append((df.index[i], lows.iloc[i]))
+    """A bar is a swing high/low if it equals the max/min of the window
+    centered on it (lookback bars either side). Vectorized via a centered
+    rolling max/min — equivalent to, but far faster than, checking each
+    bar against a fresh slice in a Python loop (this is the hot path in
+    the backtest, called once per simulated bar). rolling(center=True)
+    naturally leaves the first/last `lookback` bars unmarked (can't center
+    a full window there), matching the original loop's excluded range.
+    """
+    window = 2 * lookback + 1
+    roll_max = df["high"].rolling(window, center=True).max()
+    roll_min = df["low"].rolling(window, center=True).min()
+    is_swing_high = df["high"] == roll_max
+    is_swing_low = df["low"] == roll_min
+    swing_highs = list(zip(df.index[is_swing_high], df["high"][is_swing_high]))
+    swing_lows = list(zip(df.index[is_swing_low], df["low"][is_swing_low]))
     return swing_highs, swing_lows
 
 
