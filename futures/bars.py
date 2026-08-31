@@ -38,6 +38,11 @@ class ProjectXBarFeed:
             )
             if not bars:
                 continue
+            # Temporary debug print — confirms whether the bars we're
+            # getting are actually recent/current, and shows the raw last
+            # two entries so a scaling or wrong-timeframe issue is visible.
+            print(f"[ProjectX] {ticker}: got {len(bars)} bars, now={now.isoformat()}")
+            print(f"[ProjectX] {ticker} last 2 raw bars: {bars[-2:]}")
             df = pd.DataFrame(
                 {
                     "open": [b["o"] for b in bars],
