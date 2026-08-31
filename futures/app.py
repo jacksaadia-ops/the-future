@@ -7,16 +7,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import streamlit as st
 
 from futures import config
-from futures.formatting import format_alert
+from futures.formatting import render_alert_html
 from futures.game_plan import build_game_plan
 from futures.key_levels import compute_key_levels
 from futures.market_structure import analyze_market_structure
 from futures.order_flow import compute_depth_signal, compute_tape_signal
 from futures.risk import check_risk_limits
 from futures.setup_engine import evaluate_setup
+from futures.style import CUSTOM_CSS
 from futures.tracker import AlertTracker
 
-st.set_page_config(page_title="Futures Trading Assistant", layout="wide")
+st.set_page_config(page_title="Futures Trading Assistant", layout="wide", page_icon="🛰️")
+st.markdown(f"<style>{CUSTOM_CSS}</style>", unsafe_allow_html=True)
 st.title("AI Futures Trading Decision-Support")
 st.caption(
     "Analysis only — this tool never places, modifies, or cancels orders. "
@@ -78,9 +80,17 @@ try:
     feed.update()
 
     if config.DATA_MODE == "mock":
-        st.caption("Running on simulated data — not connected to a live Topstep/ProjectX account.")
+        st.markdown(
+            '<div class="hud-status"><span class="hud-dot mock"></span>'
+            "SIMULATED FEED — not connected to a live Topstep/ProjectX account</div>",
+            unsafe_allow_html=True,
+        )
     else:
-        st.caption("Connected to TopstepX (ProjectX Gateway) — live account data.")
+        st.markdown(
+            '<div class="hud-status"><span class="hud-dot"></span>'
+            "LIVE — connected to TopstepX (ProjectX Gateway)</div>",
+            unsafe_allow_html=True,
+        )
 
     account = user_feed.snapshot() if user_feed else {"daily_pnl": None, "open_position_size": 0}
     if config.DATA_MODE == "projectx" and not config.PROJECTX_ACCOUNT_ID:
@@ -118,7 +128,7 @@ try:
 
             invalidation = tracker.check(ticker, price)
             if invalidation:
-                st.code(format_alert(invalidation))
+                st.markdown(render_alert_html(invalidation), unsafe_allow_html=True)
 
             result = evaluate_setup(ticker, price, structure, key_levels, tape, depth_signal, risk_warnings)
             tracker.record(ticker, result)
@@ -126,7 +136,7 @@ try:
             st.metric("Price", f"{price:,.2f}")
             vwap_text = f"{key_levels['vwap']:.2f}" if key_levels["vwap"] == key_levels["vwap"] else "n/a"
             st.caption(f"VWAP {vwap_text}  |  Session {key_levels['session_low']:.2f}-{key_levels['session_high']:.2f}")
-            st.code(format_alert(result))
+            st.markdown(render_alert_html(result), unsafe_allow_html=True)
 
             with st.expander("Pre-market game plan"):
                 st.text(build_game_plan(ticker, key_levels, structure))

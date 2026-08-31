@@ -1,3 +1,32 @@
+import html
+
+_PANEL_STYLE = {
+    "trade_alert": ("hud-panel--trade", "TRADE ALERT"),
+    "level_to_watch": ("hud-panel--watch", "LEVEL TO WATCH — NOT AN ENTRY"),
+    "no_trade": ("hud-panel--no-trade", "NO TRADE"),
+    "market_unclear": ("hud-panel--unclear", "MARKET UNCLEAR — STAND ASIDE"),
+    "setup_invalid": ("hud-panel--invalid", "SETUP INVALID — DO NOT ENTER"),
+    "target_reached": ("hud-panel--reached", "TARGET REACHED"),
+}
+
+
+def render_alert_html(alert):
+    """HUD-styled version of format_alert()'s text for st.markdown(unsafe_allow_html=True).
+
+    Strips the leading label line (it becomes the colored badge instead)
+    and escapes the rest, since it's rendered as raw HTML.
+    """
+    css_class, tag = _PANEL_STYLE.get(alert["kind"], ("hud-panel--no-trade", alert["kind"]))
+    text = format_alert(alert)
+    body = text.split("\n", 1)[1] if "\n" in text else ""
+    return (
+        f'<div class="hud-panel {css_class}">'
+        f'<span class="hud-tag">{html.escape(tag)}</span>\n'
+        f"{html.escape(body)}"
+        f"</div>"
+    )
+
+
 def format_alert(alert):
     kind = alert["kind"]
 
