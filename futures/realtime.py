@@ -71,7 +71,7 @@ class ProjectXRealtimeFeed:
     def _on_quote(self, args):
         contract_id, data = args[0], args[1]
         ticker = self._ticker_for(contract_id)
-        if ticker is None:
+        if ticker is None or not isinstance(data, dict):
             return
         self._quotes[ticker] = {
             "bid": data.get("bestBid"),
@@ -84,29 +84,38 @@ class ProjectXRealtimeFeed:
     def _on_trade(self, args):
         contract_id, data = args[0], args[1]
         ticker = self._ticker_for(contract_id)
-        if ticker is None:
+        if ticker is None or data is None:
             return
-        # TradeLogType: BUY=0, SELL=1 — the gateway reports the actual
-        # aggressor side directly, no bid/ask-midpoint inference needed.
-        side = "buy" if data.get("type") == 0 else "sell"
-        self._trades[ticker].append(
-            {
-                "ts": datetime.now(timezone.utc),
-                "price": data.get("price"),
-                "size": data.get("volume"),
-                "side": side,
-            }
-        )
-        self._last_update[ticker] = datetime.now(timezone.utc)
+        # Observed live: the gateway sends a *list* of trade entries per
+        # event (occasionally just one), not a single dict — handle both.
+        entries = data if isinstance(data, list) else [data]
+        now = datetime.now(timezone.utc)
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            # TradeLogType: BUY=0, SELL=1 — the gateway reports the actual
+            # aggressor side directly, no bid/ask-midpoint inference needed.
+            side = "buy" if entry.get("type") == 0 else "sell"
+            self._trades[ticker].append(
+                {
+                    "ts": now,
+                    "price": entry.get("price"),
+                    "size": entry.get("volume"),
+                    "side": side,
+                }
+            )
+        self._last_update[ticker] = now
 
     def _on_depth(self, args):
         contract_id, data = args[0], args[1]
         ticker = self._ticker_for(contract_id)
-        if ticker is None:
+        if ticker is None or data is None:
             return
         levels = data if isinstance(data, list) else [data]
         book = self._depth[ticker]
         for level in levels:
+            if not isinstance(level, dict):
+                continue
             dom_type = level.get("type")
             price = level.get("price")
             volume = level.get("volume")

@@ -29,7 +29,11 @@ class ProjectXBarFeed:
                 start_time=start.isoformat(),
                 end_time=now.isoformat(),
                 limit=config.HISTORY_LOOKBACK_HOURS * 60,
-                live=True,
+                # Evaluation/Combine accounts appear to only have access to
+                # the simulated ("live": False) history feed — "live": True
+                # returned errorCode 1 with no message against a Combine
+                # account. Revisit once trading a funded/live account.
+                live=False,
                 include_partial_bar=True,
             )
             if not bars:
