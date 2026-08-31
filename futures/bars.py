@@ -53,7 +53,12 @@ class ProjectXBarFeed:
                 },
                 index=pd.to_datetime([b["t"] for b in bars], utc=True),
             )
-            self._bars[ticker] = df
+            # ProjectX returns bars newest-first (descending) — confirmed
+            # against a live account, where the naive last row was actually
+            # one of the OLDEST bars in the window. Sort ascending so every
+            # downstream consumer (latest_price, VWAP, market structure)
+            # can keep assuming standard oldest-first OHLCV ordering.
+            self._bars[ticker] = df.sort_index()
             self._last_poll[ticker] = now
 
     def get_bars(self, ticker):
