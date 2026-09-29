@@ -94,15 +94,17 @@ kbd {
 }
 
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark { width: 30px; height: 36px; filter: drop-shadow(0 0 10px rgba(255, 46, 136, 0.7)); animation: bob 3s ease-in-out infinite; }
+.brand-mark {
+  width: 40px; height: 43px; flex: none;
+  filter: drop-shadow(-4px 0 8px rgba(255, 46, 136, 0.45)) drop-shadow(4px 0 8px rgba(31, 200, 255, 0.45));
+  animation: bob 3s ease-in-out infinite;
+}
 .brand-name {
-  font-weight: 900; font-size: 22px; letter-spacing: 0.02em; text-transform: uppercase;
+  font-family: 'Unbounded', var(--font); font-weight: 800; font-size: 20px;
+  letter-spacing: 0.01em; text-transform: uppercase; white-space: nowrap;
 }
-.brand-name span {
-  background: linear-gradient(90deg, var(--pink), var(--violet), var(--cyan));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  margin-left: 4px;
-}
+.brand-name .fi { color: #ff4fa0; }
+.brand-name .ll { color: #33d6ff; }
 
 .top-stats { display: flex; gap: 8px; align-items: center; }
 .chip {
@@ -769,8 +771,8 @@ kbd {
 @media (max-width: 640px) {
   .app { padding: 8px 10px 20px; gap: 12px; }
   .topbar { padding: 8px 10px; top: calc(env(safe-area-inset-top, 0px) + 4px); flex-wrap: wrap; row-gap: 8px; }
-  .brand-name { font-size: 17px; }
-  .brand-mark { width: 24px; height: 29px; }
+  .brand-name { font-size: 15px; }
+  .brand-mark { width: 30px; height: 32px; }
   .top-stats { order: 3; width: 100%; justify-content: space-between; }
   .chip { padding: 5px 10px; font-size: 12px; }
   .balance { min-width: 0; padding: 4px 10px; }

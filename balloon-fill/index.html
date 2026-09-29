@@ -7,7 +7,8 @@
   <title>Balloon Fill</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Unbounded:wght@800&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 36'%3E%3Ccircle cx='15' cy='18' r='13' fill='%23ff2e88'/%3E%3Ccircle cx='29' cy='18' r='13' fill='%231fc8ff' stroke='%230a0716' stroke-width='3' paint-order='stroke'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -18,19 +19,31 @@
     <!-- ───────────── Top bar ───────────── -->
     <header class="topbar">
       <div class="brand">
-        <svg class="brand-mark" viewBox="0 0 40 48" aria-hidden="true">
+        <!-- Twin Balloons mark: the game's two balloons, tied together -->
+        <svg class="brand-mark" viewBox="0 0 160 172" aria-hidden="true">
           <defs>
-            <radialGradient id="brand-grad" cx="35%" cy="30%" r="75%">
-              <stop offset="0%" stop-color="#ffd6ea" />
-              <stop offset="50%" stop-color="#ff2e88" />
-              <stop offset="100%" stop-color="#7b0a45" />
+            <radialGradient id="brand-pink" cx="36%" cy="30%" r="78%">
+              <stop offset="0" stop-color="#ffd1e6" /><stop offset="0.42" stop-color="#ff2e88" /><stop offset="1" stop-color="#7d0a41" />
+            </radialGradient>
+            <radialGradient id="brand-cyan" cx="36%" cy="30%" r="78%">
+              <stop offset="0" stop-color="#d2f7ff" /><stop offset="0.42" stop-color="#1fc8ff" /><stop offset="1" stop-color="#064b73" />
             </radialGradient>
           </defs>
-          <path d="M20 2C31 2 37 10 37 19C37 30 28 38 21 40H19C12 38 3 30 3 19C3 10 9 2 20 2Z" fill="url(#brand-grad)" />
-          <path d="M17 40H23L24 44H16Z" fill="#7b0a45" />
-          <ellipse cx="13" cy="13" rx="4" ry="7" transform="rotate(-25 13 13)" fill="#fff" opacity=".5" />
+          <path d="M55 114Q62 142 80 166" stroke="#ff8cc3" stroke-width="4" fill="none" stroke-linecap="round" />
+          <path d="M105 114Q98 142 80 166" stroke="#7fe3ff" stroke-width="4" fill="none" stroke-linecap="round" />
+          <g transform="translate(5 0) rotate(-14 50 110)">
+            <path d="M50 4C77 4 94 25 94 50C94 78 72 100 53 106H47C28 100 6 78 6 50C6 25 23 4 50 4Z" fill="url(#brand-pink)" />
+            <ellipse cx="33" cy="30" rx="9" ry="16" transform="rotate(-28 33 30)" fill="#fff" opacity="0.5" />
+            <path d="M44 105H56L58 113Q50 115 42 113Z" fill="#7d0a41" />
+          </g>
+          <g transform="translate(55 0) rotate(14 50 110)">
+            <path d="M50 4C77 4 94 25 94 50C94 78 72 100 53 106H47C28 100 6 78 6 50C6 25 23 4 50 4Z" fill="url(#brand-cyan)" stroke="#0a0716" stroke-width="5" paint-order="stroke" />
+            <ellipse cx="33" cy="30" rx="9" ry="16" transform="rotate(-28 33 30)" fill="#fff" opacity="0.5" />
+            <path d="M44 105H56L58 113Q50 115 42 113Z" fill="#064b73" />
+          </g>
+          <circle cx="80" cy="166" r="5" fill="#f3efff" />
         </svg>
-        <span class="brand-name">Balloon<span>Fill</span></span>
+        <span class="brand-name">Balloon <span class="fi">Fi</span><span class="ll">ll</span></span>
       </div>
 
       <div class="top-stats">
