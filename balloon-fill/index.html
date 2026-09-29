@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0716" />
+  <title>Balloon Fill</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Full-screen particle layer (pop shards, coins, sparkles) -->
+  <canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+  <div class="app">
+    <!-- ───────────── Top bar ───────────── -->
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 40 48" aria-hidden="true">
+          <defs>
+            <radialGradient id="brand-grad" cx="35%" cy="30%" r="75%">
+              <stop offset="0%" stop-color="#ffd6ea" />
+              <stop offset="50%" stop-color="#ff2e88" />
+              <stop offset="100%" stop-color="#7b0a45" />
+            </radialGradient>
+          </defs>
+          <path d="M20 2C31 2 37 10 37 19C37 30 28 38 21 40H19C12 38 3 30 3 19C3 10 9 2 20 2Z" fill="url(#brand-grad)" />
+          <path d="M17 40H23L24 44H16Z" fill="#7b0a45" />
+          <ellipse cx="13" cy="13" rx="4" ry="7" transform="rotate(-25 13 13)" fill="#fff" opacity=".5" />
+        </svg>
+        <span class="brand-name">Balloon<span>Fill</span></span>
+      </div>
+
+      <div class="top-stats">
+        <div class="chip streak-chip" id="streak-chip" title="Current win streak (best in brackets)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z" fill="currentColor"/></svg>
+          <span><b id="streak-value">0</b> streak</span>
+          <small id="streak-best">best 0</small>
+        </div>
+        <div class="chip level-chip" title="Player level">
+          <span>LV</span><b id="level-chip-value">1</b>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="balance" id="balance-box">
+          <span class="balance-label">Balance</span>
+          <span class="balance-value" id="balance-value">$0.00</span>
+        </div>
+        <button class="btn-refill hidden" id="refill-btn" type="button">Free chips</button>
+        <button class="icon-btn" id="sound-btn" type="button" aria-label="Toggle sound" aria-pressed="true">
+          <svg class="ico-on" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          <svg class="ico-off" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ───────────── Game + feed ───────────── -->
+    <main class="layout">
+      <section class="game" aria-label="Balloons">
+        <div class="balloons" id="balloons"></div>
+
+        <div class="bigbar">
+          <button class="btn-big" id="big-btn" type="button">
+            <span class="big-label" id="big-label">Start Both</span>
+            <span class="big-sub" id="big-sub">Total bet $20.00</span>
+          </button>
+          <p class="hint">Space = main button · <kbd>1</kbd> / <kbd>2</kbd> = start or cash out a balloon</p>
+        </div>
+      </section>
+
+      <aside class="panel feed" aria-label="Live feed">
+        <div class="panel-head">
+          <h2><span class="live-dot"></span>Live Feed</h2>
+          <span class="online"><b id="online-count">1,284</b> online</span>
+        </div>
+        <ul class="feed-list" id="feed-list" aria-live="off"></ul>
+      </aside>
+    </main>
+
+    <!-- ───────────── Progress ───────────── -->
+    <section class="panel progress" aria-label="Player progress">
+      <div class="level-badge"><small>Level</small><b id="level-value">1</b></div>
+      <div class="xp">
+        <div class="xp-top">
+          <span>Experience</span>
+          <span id="xp-text">0 / 120 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+        <div class="xp-next" id="next-perk">Next reward: —</div>
+      </div>
+      <ul class="perks" id="perk-list"></ul>
+    </section>
+
+    <!-- ───────────── Skins ───────────── -->
+    <section class="panel skins" aria-label="Balloon skins">
+      <div class="panel-head">
+        <h2>Balloon Skins</h2>
+        <span class="muted">Level up to unlock · equip on either balloon</span>
+      </div>
+      <div class="skin-grid" id="skin-grid"></div>
+    </section>
+
+    <footer class="foot">
+      Play-money demo · Each balloon pops at a random moment with a 3% house edge · Golden balloons inflate at 2× speed with identical pop timing.
+      <button class="link-btn" id="reset-btn" type="button">Reset progress</button>
+    </footer>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- Balloon card template (cloned once per balloon slot) -->
+  <template id="balloon-card-tpl">
+    <section class="panel balloon-card">
+      <header class="card-head">
+        <span class="slot-label">Balloon <b data-ref="num"></b></span>
+        <div class="history" data-ref="history"></div>
+      </header>
+      <div class="stage" data-ref="stage">
+        <div class="stage-glow"></div>
+        <div class="golden-banner" data-ref="goldenBanner">★ Golden · 2× speed</div>
+        <div class="mult" data-ref="mult">1.00x</div>
+        <div class="result" data-ref="result"></div>
+        <div class="balloon-wrap" data-ref="wrap">
+          <div class="balloon" data-ref="balloon"></div>
+        </div>
+        <div class="pump" aria-hidden="true">
+          <div class="pump-nozzle"></div>
+          <div class="pump-base"><span data-ref="pumpLight"></span></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label data-ref="betLabel">Bet</label>
+          <div class="input-row">
+            <span class="affix">$</span>
+            <input data-ref="bet" type="number" inputmode="decimal" min="0.10" step="0.10" />
+            <button type="button" class="mini-btn" data-ref="half">½</button>
+            <button type="button" class="mini-btn" data-ref="double">2×</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Auto cash out</label>
+          <div class="input-row">
+            <label class="toggle"><input type="checkbox" data-ref="autoOn" /><span></span></label>
+            <input data-ref="auto" type="number" inputmode="decimal" min="1.01" step="0.01" />
+            <span class="affix">x</span>
+          </div>
+        </div>
+        <button type="button" class="btn-action" data-ref="action">
+          <span class="action-label" data-ref="actionLabel">Start Fill</span>
+          <span class="action-sub" data-ref="actionSub"></span>
+        </button>
+      </div>
+    </section>
+  </template>
+
+  <!-- Classic scripts (no build step; works from file://). Order matters. -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/outcome.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/skins.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/wallet.js"></script>
+  <script src="js/balloon.js"></script>
+  <script src="js/balloonView.js"></script>
+  <script src="js/feed.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
