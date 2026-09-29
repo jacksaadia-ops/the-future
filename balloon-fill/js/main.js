@@ -408,6 +408,24 @@
       $('#rules-link').addEventListener('click', openRules);
       $('#rules-close').addEventListener('click', () => rules.close());
       rules.addEventListener('click', (e) => { if (e.target === rules) rules.close(); }); // backdrop
+
+      const howTo = $('#howto-dialog');
+      const openHowTo = () => {
+        $('#howto-body').innerHTML = BF.rules.howTo();
+        if (!howTo.open) howTo.showModal();
+      };
+      $('#howto-btn').addEventListener('click', openHowTo);
+      $('#howto-link').addEventListener('click', openHowTo);
+      $('#howto-close').addEventListener('click', () => howTo.close());
+      howTo.addEventListener('click', (e) => {
+        if (e.target === howTo || e.target.closest('[data-close]')) howTo.close();
+        else if (e.target.closest('[data-open-rules]')) { howTo.close(); openRules(); }
+      });
+      // First visit: show the guide once.
+      const seenKey = `${C.STORAGE_KEY}.howto`;
+      let seen = true;
+      try { seen = !!window.localStorage.getItem(seenKey); window.localStorage.setItem(seenKey, '1'); } catch (e) { /* storage blocked */ }
+      if (!seen) setTimeout(openHowTo, 400);
       this.bindFair();
 
       $('#sound-btn').addEventListener('click', () => {
@@ -442,7 +460,7 @@
       });
 
       document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.repeat || $('#rules-dialog').open || $('#fair-dialog').open) return;
+        if (e.target.tagName === 'INPUT' || e.repeat || $('#rules-dialog').open || $('#fair-dialog').open || $('#howto-dialog').open) return;
         if (e.code === 'Space') {
           if (e.target.tagName === 'BUTTON') return; // let the focused button handle it
           e.preventDefault();

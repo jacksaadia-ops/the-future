@@ -77,5 +77,24 @@
       </ul>`;
   }
 
-  BF.rules = { figures, html };
+  /** Short step-by-step guide for new players (the full rules are in html()). */
+  function howTo() {
+    const steps = [
+      ['Pick your balloon', 'Two balloons fly every round. Bet on Balloon 1, Balloon 2, or both. Each has its own bet box.'],
+      ['Bet before the timer ends', `Set an amount (½ and 2× adjust it) and press Place Bet, or Bet on Both. You have ${C.BETTING_MS / 1000} seconds; you can cancel until bets lock.`],
+      ['Watch them fill', 'Both balloons start at 1.00x and the multiplier rises as they inflate. Each one pops at its own random moment.'],
+      ['Cash out before it pops', 'Press Cash Out to win your bet × the current multiplier. If the balloon pops first, that bet is lost.'],
+      ['Set auto cash-out (optional)', 'Type a target like 2.00x and the game cashes out for you the moment the balloon reaches it.'],
+    ];
+    return `
+      <ol class="howto-steps">${steps.map(([t, d], i) => `<li><span class="howto-num">${i + 1}</span><div><b>${t}</b><p>${d}</p></div></li>`).join('')}</ol>
+      <p class="howto-tip"><b>Golden Balloon</b> About 1 in ${Math.round(1 / C.GOLDEN_CHANCE)} balloons turns gold after bets lock. It fills ${C.GOLDEN_SPEED}× faster but has the same chance to pop, up to a max of ${C.GOLDEN_CAP}x.</p>
+      <div class="howto-actions">
+        <button class="btn-secondary" type="button" data-open-rules>Full rules &amp; payouts</button>
+        <button class="btn-primary" type="button" data-close>Got it, let's play</button>
+      </div>
+      <p class="muted">Keys: Space = main button · 1 / 2 = bet or cash out a balloon.</p>`;
+  }
+
+  BF.rules = { figures, html, howTo };
 })();

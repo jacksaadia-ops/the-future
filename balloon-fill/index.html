@@ -20,7 +20,7 @@
     <header class="topbar">
       <div class="brand">
         <!-- Twin Balloons mark: the game's two balloons, tied together -->
-        <svg class="brand-mark" viewBox="0 0 160 172" aria-hidden="true">
+        <svg class="brand-mark" viewBox="-18 -8 196 178" aria-hidden="true">
           <defs>
             <radialGradient id="brand-pink" cx="36%" cy="30%" r="78%">
               <stop offset="0" stop-color="#ffd1e6" /><stop offset="0.42" stop-color="#ff2e88" /><stop offset="1" stop-color="#7d0a41" />
@@ -64,6 +64,7 @@
         </div>
         <button class="btn-refill hidden" id="refill-btn" type="button">Free chips</button>
         <div class="top-icons">
+        <button class="howto-btn" id="howto-btn" type="button" aria-label="How to play" title="How to play"><svg viewBox="0 0 24 24"><path d="M4 5.5C6.5 4.3 9.3 4.4 12 6c2.7-1.6 5.5-1.7 8-.5v13c-2.5-1.2-5.3-1.1-8 .5-2.7-1.6-5.5-1.7-8-.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v13" stroke="currentColor" stroke-width="2"/></svg><span>How to play</span></button>
         <button class="icon-btn fair-btn" id="fair-btn" type="button" aria-label="Provably fair" title="Provably fair">
           <svg viewBox="0 0 24 24"><path d="M12 2 20 5.5v6c0 5-3.4 9.2-8 10.5C7.4 20.7 4 16.5 4 11.5v-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -165,6 +166,7 @@
     </section>
 
     <footer class="foot">
+      <button class="link-btn" id="howto-link" type="button">How to play</button> ·
       <button class="link-btn" id="rules-link" type="button">Rules &amp; payouts</button> ·
       <button class="link-btn" id="fair-link" type="button">Provably fair</button> ·
       Play-money demo · Shared rounds: bets lock after a 6-second window, then both balloons fill · Every balloon has a 1% chance to turn golden after bets lock: 1.5× speed, same chance to pop, max 10x · RTP <span id="rtp-value">95.5%</span>.
@@ -182,6 +184,16 @@
       </button>
     </div>
     <div class="rules-body" id="fair-body"></div>
+  </dialog>
+
+  <dialog class="rules-dialog" id="howto-dialog" aria-labelledby="howto-title">
+    <div class="rules-head">
+      <h2 id="howto-title">How to Play</h2>
+      <button class="icon-btn" id="howto-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rules-body" id="howto-body"></div>
   </dialog>
 
   <dialog class="rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
