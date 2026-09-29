@@ -15,9 +15,9 @@ test('normal balloons return k at any target', () => {
   }
 });
 
-test('golden return held to cap is k · cap^(1 − 1/speed), and higher targets cannot beat it', () => {
+test('golden return at the best target matches k · goldenFactor(), and higher targets cannot beat it', () => {
   const expected = BF.outcome.survivalConstant(C.RTP) * BF.outcome.goldenFactor();
-  const r = rtpFor(true, C.GOLDEN_CAP, N);
+  const r = rtpFor(true, BF.outcome.goldenBestTarget(), N);
   assert.ok(Math.abs(r - expected) < 0.05, `golden at cap: ${r}, expected ${expected}`);
   assert.ok(rtpFor(true, 1000, N) < expected + 0.05);
 });

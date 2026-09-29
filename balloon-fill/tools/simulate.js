@@ -59,7 +59,7 @@ if (require.main === module) {
 
   for (const rtp of C.RTP_OPTIONS) {
     const k = survivalConstant(rtp);
-    console.log(`RTP setting ${(rtp * 100).toFixed(0)}%  (normal balloons return ${(k * 100).toFixed(2)}%, instant-pop rate ${((1 - k) * 100).toFixed(2)}%)`);
+    console.log(`RTP setting ${(rtp * 100).toFixed(0)}%  (normal balloons return ${(k * 100).toFixed(2)}%, instant-pop rate ${((1 - k / 1.01) * 100).toFixed(2)}%)`);
     console.log('  Target    Normal    Golden');
     for (const t of targets) {
       console.log(`  ${(t.toFixed(2) + 'x').padEnd(8)}${pct(rtpFor(false, t, n, rtp))}  ${pct(rtpFor(true, t, n / 4, rtp))}`);

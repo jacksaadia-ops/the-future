@@ -7,7 +7,7 @@ const path = require('path');
 const vm = require('vm');
 
 const LOGIC_FILES = [
-  'config.js', 'utils.js', 'outcome.js', 'skins.js', 'progress.js', 'rewards.js', 'wallet.js', 'round.js', 'balloon.js',
+  'config.js', 'utils.js', 'outcome.js', 'rules.js', 'skins.js', 'progress.js', 'rewards.js', 'wallet.js', 'round.js', 'balloon.js',
 ];
 
 function loadGame() {

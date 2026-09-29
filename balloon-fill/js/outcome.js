@@ -20,10 +20,11 @@
  *
  * Odds. For a normal balloon P(pop point ≥ x) = k / x, so every cash-out
  * target returns k. A golden balloon pops at the same TIME a normal one would
- * but inflates `speed`× faster, so held to its cap it returns
- * k · cap^(1 − 1/speed). k is chosen so that the overall return, with goldens
- * played optimally, equals CONFIG.RTP exactly:
- *     RTP = k · [(1 − p) + p · cap^(1 − 1/speed)]
+ * but inflates `speed`× faster, so its best cash-out returns about
+ * k · cap^(1 − 1/speed) (goldenFactor() computes it exactly on the 0.01 grid).
+ * k is chosen so that the overall return, with goldens played optimally,
+ * equals CONFIG.RTP exactly:
+ *     RTP = k · [(1 − p) + p · goldenFactor()]
  */
 (function () {
   const C = BF.CONFIG;
@@ -39,9 +40,39 @@
     return Math.random();
   }
 
-  /** Best achievable return of a golden balloon, per unit of k. */
+  const ceil2 = (v) => Math.ceil(v * 100 - 1e-9) / 100;
+
+  /**
+   * Return of a golden balloon cashed out at `target` (on the 0.01 grid), per unit of k.
+   * It reaches y exactly when its normal-curve pop point is ≥ y^(1/speed); pop points
+   * are whole cents, so that probability is k / ceil2(y^(1/speed)).
+   */
+  function goldenReturn(target) {
+    const y = Math.min(target, C.GOLDEN_CAP);
+    return y / ceil2(y ** (1 / C.GOLDEN_SPEED));
+  }
+
+  let goldenBest = null;
+  /**
+   * Best achievable return of a golden balloon, per unit of k, over every
+   * possible cash-out target. (Continuous approximation: cap^(1 − 1/speed);
+   * cent rounding makes a target just under the cap marginally best.)
+   */
   function goldenFactor() {
-    return C.GOLDEN_CAP ** (1 - 1 / C.GOLDEN_SPEED);
+    if (!goldenBest) {
+      goldenBest = { factor: 0, target: 0 };
+      for (let c = 101; c <= Math.round(C.GOLDEN_CAP * 100); c++) {
+        const f = goldenReturn(c / 100);
+        if (f > goldenBest.factor) goldenBest = { factor: f, target: c / 100 };
+      }
+    }
+    return goldenBest.factor;
+  }
+
+  /** The golden cash-out target that achieves goldenFactor(). */
+  function goldenBestTarget() {
+    goldenFactor();
+    return goldenBest.target;
   }
 
   /** Survival constant k for a target overall RTP. */
@@ -92,5 +123,8 @@
     }
   }
 
-  BF.outcome = { LocalRoundProvider, samplePopPoint, survivalConstant, goldenFactor, buildBalloon, secureRandom };
+  BF.outcome = {
+    LocalRoundProvider, samplePopPoint, survivalConstant, goldenFactor, goldenReturn, goldenBestTarget,
+    buildBalloon, secureRandom,
+  };
 })();

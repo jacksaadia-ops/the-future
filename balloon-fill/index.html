@@ -50,6 +50,9 @@
           <span class="balance-value" id="balance-value">$0.00</span>
         </div>
         <button class="btn-refill hidden" id="refill-btn" type="button">Free chips</button>
+        <button class="icon-btn" id="rules-btn" type="button" aria-label="Game rules and payouts" title="Rules &amp; payouts">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.3" r="1.2" fill="currentColor"/></svg>
+        </button>
         <button class="icon-btn" id="sound-btn" type="button" aria-label="Toggle sound" aria-pressed="true">
           <svg class="ico-on" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
           <svg class="ico-off" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -144,12 +147,23 @@
     </section>
 
     <footer class="foot">
+      <button class="link-btn" id="rules-link" type="button">Rules &amp; payouts</button> ·
       Play-money demo · Shared rounds: bets lock after a 6-second window, then both balloons fill · Every balloon has a 1% chance to turn golden after bets lock: 1.5× speed, same pop timing, pays 10x if it survives · RTP <span id="rtp-value">97%</span>.
       <button class="link-btn" id="reset-btn" type="button">Reset progress</button>
     </footer>
   </div>
 
   <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <dialog class="rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
+    <div class="rules-head">
+      <h2 id="rules-title">Rules &amp; Payouts</h2>
+      <button class="icon-btn" id="rules-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rules-body" id="rules-body"></div>
+  </dialog>
 
   <!-- Balloon card template (cloned once per balloon slot) -->
   <template id="balloon-card-tpl">
@@ -216,6 +230,7 @@
   <script src="js/balloon.js"></script>
   <script src="js/balloonView.js"></script>
   <script src="js/feed.js"></script>
+  <script src="js/rules.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

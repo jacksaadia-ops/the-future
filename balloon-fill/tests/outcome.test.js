@@ -15,6 +15,22 @@ test('survival constant makes optimal overall return equal the RTP setting', () 
   }
 });
 
+test('golden factor is the exact best return over every cent target', () => {
+  const { goldenFactor, goldenReturn, goldenBestTarget } = BF.outcome;
+  const continuous = C.GOLDEN_CAP ** (1 - 1 / C.GOLDEN_SPEED);
+  assert.ok(goldenFactor() <= continuous && goldenFactor() > continuous * 0.99);
+  for (let c = 101; c <= C.GOLDEN_CAP * 100; c++) assert.ok(goldenReturn(c / 100) <= goldenFactor() + 1e-12);
+  assert.equal(goldenReturn(goldenBestTarget()), goldenFactor());
+});
+
+test('instant pops (below 1.01x) happen at rate 1 − k/1.01', () => {
+  const k = survivalConstant(0.97);
+  let instant = 0;
+  const n = 400000;
+  for (let i = 0; i < n; i++) if (samplePopPoint(Math.random(), k) < 1.01) instant++;
+  assert.ok(Math.abs(instant / n - (1 - k / 1.01)) < 0.002, `instant rate ${instant / n}`);
+});
+
 test('pop point never drops below 1.00x and follows k / x', () => {
   const k = survivalConstant(0.97);
   assert.equal(samplePopPoint(0, k), 1); // k < 1 → instant pop

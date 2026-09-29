@@ -187,7 +187,7 @@
         this.toast(`Bet must be between ${money(C.MIN_BET)} and ${money(C.MAX_BET)}`, 'error');
         return null;
       }
-      const auto = view.autoTarget;
+      const auto = view.autoTarget === null ? null : round2(view.autoTarget);
       if (view.r.autoOn.checked && !(auto >= 1.01)) {
         view.flagInvalid('auto');
         this.toast('Auto cash out must be at least 1.01x', 'error');
@@ -349,6 +349,16 @@
 
       $('#big-btn').addEventListener('click', () => this.bigAction());
 
+      const rules = $('#rules-dialog');
+      const openRules = () => {
+        $('#rules-body').innerHTML = BF.rules.html();
+        rules.showModal();
+      };
+      $('#rules-btn').addEventListener('click', openRules);
+      $('#rules-link').addEventListener('click', openRules);
+      $('#rules-close').addEventListener('click', () => rules.close());
+      rules.addEventListener('click', (e) => { if (e.target === rules) rules.close(); }); // backdrop
+
       $('#sound-btn').addEventListener('click', () => {
         BF.sound.setEnabled(!BF.sound.enabled);
         if (BF.sound.enabled) {
@@ -375,7 +385,7 @@
       });
 
       document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.repeat) return;
+        if (e.target.tagName === 'INPUT' || e.repeat || $('#rules-dialog').open) return;
         if (e.code === 'Space') {
           if (e.target.tagName === 'BUTTON') return; // let the focused button handle it
           e.preventDefault();

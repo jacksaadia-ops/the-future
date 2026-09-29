@@ -22,7 +22,7 @@ While a round is running you can queue a bet for the next round ("Bet Next Round
   `RTP = k · [(1 − p) + p · cap^(1 − 1/speed)]`
 
 ## Payouts (from `npm run simulate`)
-| RTP setting | Normal balloons | Golden held to cap | Overall (best play) |
+| RTP setting | Normal balloons | Golden at best target (9.99x) | Overall (best play) |
 | --- | --- | --- | --- |
 | 97% | 95.9% | ~206% | 97.0% |
 | 96% | 94.9% | ~204% | 96.0% |
@@ -35,11 +35,20 @@ While a round is running you can queue a bet for the next round ("Bet Next Round
 - **Biggest wins**: top 5 wins seen in the live feed this session.
 - Haptic feedback on phones (pop, cash-out, golden), following the sound toggle.
 
-## Tests
+## Tests and math report
 ```
 npm test            # unit tests + payout checks (Node 18+, no dependencies)
-npm run simulate    # print the payout table above
+npm run simulate    # quick payout table per RTP setting
+npm run report      # regenerate docs/math-report.md (PAR sheet) from the game code
 ```
+
+`docs/math-report.md` is the game's math report for test-lab submission: parameters, the odds model, exact RTP for each
+setting (best play and lowest possible play), per-target win probabilities and volatility, golden-balloon figures, round
+timing and exposure — every value computed from the running code and cross-checked by simulation. Regenerate it after
+changing anything in `config.js`.
+
+In the game, the **?** button (or "Rules & payouts" in the footer) opens the player-facing rules, generated from the same
+settings so the published RTP and limits always match the game.
 
 ## Controls
 - Per balloon: bet (½ / 2×), auto cash-out toggle + target, and one button that becomes Place Bet → Cancel Bet → Cash Out → Bet Next Round.
