@@ -1,6 +1,6 @@
 # Balloon Fill — Game Math Report (PAR sheet)
 
-Generated 2026-09-29 by `tools/math-report.js` from code version `15e4912`.
+Generated 2026-09-29 by `tools/math-report.js` from code version `ef39915`.
 All theoretical values are computed exactly from the game code; simulated values run the real settlement code.
 Simulation size: 10,000,000 balloons per RTP setting.
 
@@ -21,6 +21,8 @@ multiplier at which it is cashed out (manually or by auto cash-out) before its b
 | RTP settings offered | 94%, 95.5%, 96%, 97% (default 95.5%) |
 | Balloons per round | 2, independent outcomes |
 | Multiplier curve | m(t) = e^(0.00012 × speed × t), t in ms; normal reaches 2x in 5.78 s |
+| Long-flight speed-up | above 5x the flight clock runs 3× faster (same mapping for every balloon; pop points and payouts unchanged) |
+| Auto bet | on, up to 100 rounds (operator setting) |
 | Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |
 | Maximum multiplier | 10,000x (balloon pays out at this value if it survives) |
 | Golden chance | 1.00% per balloon, independent, revealed only after bets lock |
@@ -53,10 +55,10 @@ minimum RTP using the strategy with the greatest return):
 
 | RTP setting | k (normal balloon return) | Instant-pop rate | Best play (theory) | Best play (simulated, 95% CI) | Lowest possible play |
 | --- | --- | --- | --- | --- | --- |
-| 94% | 92.929% | 7.992% | 94.0000% | 94.023% ± 0.067% | 92.008% |
-| 95.5% | 94.411% | 6.523% | 95.5000% | 95.503% ± 0.067% | 93.477% |
-| 96% | 94.906% | 6.034% | 96.0000% | 95.978% ± 0.067% | 93.966% |
-| 97% | 95.894% | 5.055% | 97.0000% | 96.947% ± 0.067% | 94.945% |
+| 94% | 92.929% | 7.992% | 94.0000% | 93.989% ± 0.067% | 92.008% |
+| 95.5% | 94.411% | 6.523% | 95.5000% | 95.459% ± 0.067% | 93.477% |
+| 96% | 94.906% | 6.034% | 96.0000% | 95.990% ± 0.067% | 93.966% |
+| 97% | 95.894% | 5.055% | 97.0000% | 97.011% ± 0.067% | 94.945% |
 
 - **Best play**: any normal-balloon target (all return k), golden balloons cashed at the best golden target.
 - **Any auto cash-out target**: between k and best play, depending on the golden-balloon target.
@@ -122,9 +124,9 @@ k = 0.944114.
 | Measure | Value |
 | --- | --- |
 | Fixed time per round (betting + reveal + results) | 9.0 s |
-| Flight time (until both balloons finish) — mean / median / 95th percentile | 12.0 s / 9.7 s / 30.1 s |
-| Mean round length | 21.0 s |
-| Rounds per hour | ~172 |
+| Flight time (until both balloons finish) — mean / median / 95th percentile | 10.0 s / 9.8 s / 19.0 s |
+| Mean round length | 19.0 s |
+| Rounds per hour | ~189 |
 
 ## 7. Exposure
 
