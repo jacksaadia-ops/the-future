@@ -47,7 +47,8 @@
       <ul>
         <li>Every balloon has an independent ${pct(C.GOLDEN_CHANCE, 0)} chance (1 in ${Math.round(1 / C.GOLDEN_CHANCE)}) of being golden. It is revealed only after bets lock, and past rounds have no effect on the chance.</li>
         <li>A Golden Balloon inflates ${C.GOLDEN_SPEED}× faster but pops at exactly the same moment it would have as a normal balloon, so its multiplier climbs higher before it pops.</li>
-        <li>If it reaches ${fx(C.GOLDEN_CAP)}, every bet still in is paid ${fx(C.GOLDEN_CAP)} automatically and the balloon floats away.</li>
+        <li>It can pop at any moment, with exactly the same chance as a normal balloon. Most Golden Balloons (about ${Math.round((1 - O.goldenReturn(C.GOLDEN_CAP) * O.survivalConstant(rtp) / C.GOLDEN_CAP) * 100)} in 100) pop before ${fx(C.GOLDEN_CAP)}, and bets still in when it pops are lost.</li>
+        <li>${fx(C.GOLDEN_CAP)} is the maximum. If a Golden Balloon gets there without popping, every bet still in is cashed out at ${fx(C.GOLDEN_CAP)} and the balloon floats away.</li>
       </ul>
 
       <h3>Payouts and odds</h3>
