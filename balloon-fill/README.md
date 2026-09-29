@@ -40,6 +40,7 @@ While a round is running you can queue a bet for the next round ("Bet Next Round
 npm test            # unit tests + payout checks (Node 18+, no dependencies)
 npm run simulate    # quick payout table per RTP setting
 npm run report      # regenerate docs/math-report.md (PAR sheet) from the game code
+npm run crowd-sim -- 200 100 1000   # 200 players × 100 rounds, repeated 1,000 times: wagered, paid, house profit
 ```
 
 `docs/math-report.md` is the game's math report for test-lab submission: parameters, the odds model, exact RTP for each
