@@ -5,7 +5,7 @@
 window.BF = window.BF || {};
 
 (function () {
-  const RTP_OPTIONS = [0.94, 0.96, 0.97];
+  const RTP_OPTIONS = [0.94, 0.955, 0.96, 0.97];
 
   /** Operators pick one of RTP_OPTIONS; `?rtp=0.96` overrides it for testing. */
   function chosenRtp(fallback) {
@@ -26,7 +26,7 @@ window.BF = window.BF || {};
 
     // Overall return to player, INCLUDING golden balloons played optimally.
     // The normal-balloon odds are derived from this (see outcome.js).
-    RTP: chosenRtp(0.97),
+    RTP: chosenRtp(0.955),
     RTP_OPTIONS,
 
     // Multiplier curve: m(t) = e^(GROWTH_RATE * speed * t), t in ms.

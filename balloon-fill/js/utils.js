@@ -14,6 +14,8 @@
     round2: (v) => Math.round(v * 100) / 100,
     floor2: (v) => Math.floor(v * 100 + 1e-9) / 100,
     money: (v) => '$' + moneyFmt.format(v),
+    /** RTP as a label without needless decimals: 0.955 → "95.5%", 0.97 → "97%". */
+    rtp: (r) => `${+(r * 100).toFixed(2)}%`,
     mult: (v) => (v >= 1000 ? Math.floor(v).toLocaleString('en-US') : v.toFixed(2)) + 'x',
     rand: (lo, hi) => lo + Math.random() * (hi - lo),
     randInt: (lo, hi) => Math.floor(lo + Math.random() * (hi - lo + 1)),

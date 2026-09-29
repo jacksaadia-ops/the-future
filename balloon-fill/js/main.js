@@ -55,7 +55,7 @@
       this.renderStreak();
       this.renderSoundBtn();
       $('#balance-value').textContent = money(this.wallet.balance);
-      $('#rtp-value').textContent = `${Math.round(C.RTP * 100)}%`;
+      $('#rtp-value').textContent = BF.util.rtp(C.RTP);
       if (refund) this.toast(`${money(refund)} from unlocked bets refunded`, 'info');
 
       this.engine.start(performance.now());

@@ -112,7 +112,7 @@
         : '<p class="rules-note">Nobody bet in this round, so only the server seed was used.</p>'}
 
       <h3>Result</h3>
-      <p class="rules-note">RTP setting ${(proof.rtp * 100).toFixed(0)}% (k = ${k.toFixed(6)}). Each balloon hashes the seeds joined with ":" plus its index.</p>
+      <p class="rules-note">RTP setting ${BF.util.rtp(proof.rtp)} (k = ${k.toFixed(6)}). Each balloon hashes the seeds joined with ":" plus its index.</p>
       ${balloons}`;
   }
 

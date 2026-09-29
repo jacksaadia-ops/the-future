@@ -130,7 +130,7 @@ function build() {
   L();
   L('| Parameter | Value |');
   L('| --- | --- |');
-  L(`| RTP settings offered | ${C.RTP_OPTIONS.map((r) => pct(r, 0)).join(', ')} (default ${pct(C.RTP, 0)}) |`);
+  L(`| RTP settings offered | ${C.RTP_OPTIONS.map(G.util.rtp).join(', ')} (default ${G.util.rtp(C.RTP)}) |`);
   L(`| Balloons per round | ${C.BALLOONS}, independent outcomes |`);
   L(`| Multiplier curve | m(t) = e^(${C.GROWTH_RATE} × speed × t), t in ms; normal reaches 2x in ${(Math.log(2) / C.GROWTH_RATE / 1000).toFixed(2)} s |`);
   L(`| Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |`);
@@ -170,7 +170,7 @@ function build() {
   for (const rtp of C.RTP_OPTIONS) {
     const t = theory(rtp);
     const s = simulate(rtp, N, 2, bestGold);
-    L(`| ${pct(rtp, 0)} | ${pct(t.k)} | ${pct(t.instant)} | ${pct(t.best, 4)} | ${pct(s.mean)} ± ${pct(s.ci)} | ${pct(t.min)} |`);
+    L(`| ${G.util.rtp(rtp)} | ${pct(t.k)} | ${pct(t.instant)} | ${pct(t.best, 4)} | ${pct(s.mean)} ± ${pct(s.ci)} | ${pct(t.min)} |`);
   }
   L();
   L('- **Best play**: any normal-balloon target (all return k), golden balloons cashed at the best golden target.');
@@ -179,7 +179,7 @@ function build() {
   L('  Manual cash-outs in general return between k/1.01 and k because the multiplier is rounded down to the cent.');
   L();
 
-  L(`## 5. Detail for the default ${pct(C.RTP, 0)} setting`);
+  L(`## 5. Detail for the default ${G.util.rtp(C.RTP)} setting`);
   L();
   L(`k = ${main.k.toFixed(6)}.`);
   L();
