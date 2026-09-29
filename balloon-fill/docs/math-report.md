@@ -1,6 +1,6 @@
 # Balloon Fill — Game Math Report (PAR sheet)
 
-Generated 2026-09-29 by `tools/math-report.js` from code version `1fe2430`.
+Generated 2026-09-29 by `tools/math-report.js` from code version `b2a1e6c`.
 All theoretical values are computed exactly from the game code; simulated values run the real settlement code.
 Simulation size: 10,000,000 balloons per RTP setting.
 
@@ -28,11 +28,11 @@ multiplier at which it is cashed out (manually or by auto cash-out) before its b
 | Golden cap | 10.00x (paid automatically to every bet still in) |
 | Bet limits | 0.10 – 10,000 per balloon |
 | Round timing | betting 6 s, lock/reveal 1 s, results 2 s |
-| Random source | CSPRNG (`crypto.getRandomValues`, 52 bits per draw) — client-side in this build |
+| Random source | Provably fair: SHA-256(serverSeed : clientSeed1 : clientSeed2 : clientSeed3 : balloonIndex); first 52 bits → pop point, next 52 bits → golden. Server seed from a CSPRNG, committed by its SHA-256 before betting opens. Runs client-side in this build. |
 
 ## 3. Mathematical model
 
-For each balloon a uniform U in [0, 1) is drawn and converted to a normal-curve pop point:
+For each balloon a uniform U in [0, 1) — the first 52 bits of the balloon's provably-fair hash — is converted to a normal-curve pop point:
 
     P = max(1.00, floor_to_cent( k / (1 − U) ))       capped at the maximum multiplier
 
@@ -53,9 +53,9 @@ minimum RTP using the strategy with the greatest return):
 
 | RTP setting | k (normal balloon return) | Instant-pop rate | Best play (theory) | Best play (simulated, 95% CI) | Lowest possible play |
 | --- | --- | --- | --- | --- | --- |
-| 94% | 92.929% | 7.992% | 94.0000% | 94.031% ± 0.067% | 92.008% |
-| 96% | 94.906% | 6.034% | 96.0000% | 95.999% ± 0.067% | 93.966% |
-| 97% | 95.894% | 5.055% | 97.0000% | 96.989% ± 0.067% | 94.945% |
+| 94% | 92.929% | 7.992% | 94.0000% | 93.997% ± 0.067% | 92.008% |
+| 96% | 94.906% | 6.034% | 96.0000% | 96.022% ± 0.067% | 93.966% |
+| 97% | 95.894% | 5.055% | 97.0000% | 97.008% ± 0.067% | 94.945% |
 
 - **Best play**: any normal-balloon target (all return k), golden balloons cashed at the best golden target.
 - **Any auto cash-out target**: between k and best play, depending on the golden-balloon target.
@@ -121,9 +121,9 @@ k = 0.958943.
 | Measure | Value |
 | --- | --- |
 | Fixed time per round (betting + reveal + results) | 9.0 s |
-| Flight time (until both balloons finish) — mean / median / 95th percentile | 12.1 s / 9.9 s / 30.3 s |
+| Flight time (until both balloons finish) — mean / median / 95th percentile | 12.1 s / 9.8 s / 30.4 s |
 | Mean round length | 21.1 s |
-| Rounds per hour | ~171 |
+| Rounds per hour | ~170 |
 
 ## 7. Exposure
 
@@ -135,7 +135,8 @@ k = 0.958943.
 ## 8. Open items before certification
 
 - Move outcome generation, the round clock, bet acceptance and cash-out confirmation to the server; certify the RNG.
-- Provably-fair commitment: publish the hash of each round's server seed before betting closes, reveal the seed after the round.
+- Provably fair is implemented (server seed committed by hash before betting, first 3 bettors' client seeds, per-round verification in the game).
+  In production the seeds must be generated and held on the server, and the verification page served from outside the game client.
 - Disconnection: a bet that is locked in must keep running and still honour auto cash-out if the player disconnects.
   (This client-only build refunds bets that were not yet locked and forfeits bets that were in flight.)
 - Maximum win per bet (see §7), responsible-gambling controls, and jurisdiction-specific disclosures.
