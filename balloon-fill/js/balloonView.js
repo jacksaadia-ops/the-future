@@ -26,6 +26,8 @@
       this.el = tpl.content.firstElementChild.cloneNode(true);
       this.r = refs(this.el);
       this.r.num.textContent = slot.id + 1;
+      const C = BF.CONFIG;
+      this.r.goldenBanner.innerHTML = `★ Golden · ${C.GOLDEN_SPEED}× speed<span> · max ${C.GOLDEN_CAP}x</span>`;
       this.r.balloon.innerHTML = BF.balloonSVG(`slot${slot.id}`);
       this.r.bet.value = bet.toFixed(2);
       this.r.auto.value = auto.toFixed(2);
@@ -115,7 +117,9 @@
       this.el.classList.add('is-cashed');
       this.r.wrap.classList.add('released');
       this.r.mult.textContent = mult(result.multiplier);
-      this.showResult(`${result.auto ? 'Auto ' : ''}Cashed ${mult(result.multiplier)}`, `+${money(result.payout)}`, 'win');
+      const title = result.capped && this.slot.golden ? `Max win ${mult(result.multiplier)}`
+        : `${result.auto ? 'Auto ' : ''}Cashed ${mult(result.multiplier)}`;
+      this.showResult(title, `+${money(result.payout)}`, 'win');
       this.addHistory(result.multiplier, true);
     }
 

@@ -14,8 +14,9 @@
   ];
   const AVATAR_COLORS = ['#ff2e88', '#1fc8ff', '#8dff2e', '#a36bff', '#ff7a3d', '#2fffc1', '#ffd84d'];
 
-  class LiveFeed {
+  class LiveFeed extends BF.util.Emitter {
     constructor(listEl, onlineEl, maxItems) {
+      super();
       this.list = listEl;
       this.onlineEl = onlineEl;
       this.max = maxItems;
@@ -35,6 +36,7 @@
         <span class="feed-amount">${entry.won ? '+' : '-'}${money(entry.amount)}</span>`;
       this.list.prepend(li);
       while (this.list.children.length > this.max) this.list.lastChild.remove();
+      this.emit('entry', entry);
     }
 
     tickOnline() {
@@ -58,16 +60,17 @@
 
     emitOne() {
       const C = BF.CONFIG;
-      const golden = Math.random() < C.GOLDEN_CHANCE;
-      const normalPop = BF.outcome.samplePopPoint(Math.random());
-      const popAt = golden ? normalPop * normalPop : normalPop;
+      const golden = Math.random() < 1 / C.GOLDEN_EVERY;
+      const round = BF.outcome.buildRound(BF.outcome.samplePopPoint(Math.random()), golden, 'sim');
+      const popAt = round.popMultiplier;
+      const capped = golden && popAt >= C.GOLDEN_CAP;
       const target = Math.random() < 0.7 ? pick([1.3, 1.5, 2, 2, 2.5, 3, 5, 10]) : rand(1.1, 8);
       const bet = Math.round(Math.exp(rand(0, 6.2)) * 100) / 100; // ~$1 – $500
-      const won = target <= popAt;
-      const m = won ? target : popAt;
+      const won = capped || target <= popAt;
+      const m = won ? Math.min(target, popAt) : popAt;
       this.feed.push({
         name: pick(NAMES), won, golden,
-        multiplier: m, amount: won ? bet * target : bet,
+        multiplier: m, amount: won ? bet * m : bet,
       });
     }
   }

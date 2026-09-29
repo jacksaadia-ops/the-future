@@ -2,7 +2,10 @@
  * BalloonSlot — pure game logic for one balloon (no DOM).
  *
  * States: idle → filling → (cashed | popped) → idle
- * Events: 'start', 'cashout' {multiplier, payout, auto}, 'pop' {multiplier}, 'reset'
+ * Events: 'start', 'cashout' {multiplier, payout, auto, capped}, 'pop' {multiplier}, 'reset'
+ *
+ * A balloon that reaches its round's maxMultiplier (the Golden Balloon cap)
+ * is cashed out automatically at that multiplier.
  *
  * The multiplier is a deterministic function of elapsed time, so a paused tab
  * resolves correctly when it wakes up (auto cash-out wins if its target was
@@ -36,7 +39,8 @@
 
     multiplierAt(elapsedMs) {
       const speed = this.round ? this.round.speed : 1;
-      return Math.min(C.MAX_MULTIPLIER, Math.exp(C.GROWTH_RATE * speed * Math.max(0, elapsedMs)));
+      const cap = this.round ? this.round.maxMultiplier : C.MAX_MULTIPLIER;
+      return Math.min(cap, Math.exp(C.GROWTH_RATE * speed * Math.max(0, elapsedMs)));
     }
 
     /** Time (ms) at which this balloon's multiplier reaches `m`. */
@@ -60,12 +64,13 @@
       const elapsed = now - this.startedAt;
       const { popTimeMs } = this.round;
 
-      if (this.autoTarget) {
-        const tAuto = this.timeFor(this.autoTarget);
-        if (elapsed >= tAuto && tAuto <= popTimeMs) {
-          this._settleCashout(this.autoTarget, true);
-          return;
-        }
+      // Auto cash-out fires at the player's target or the round cap, whichever comes first.
+      const cap = this.round.maxMultiplier;
+      const target = this.autoTarget ? Math.min(this.autoTarget, cap) : cap;
+      const tAuto = this.timeFor(target);
+      if (elapsed >= tAuto && tAuto <= popTimeMs) {
+        this._settleCashout(target, true, target === cap);
+        return;
       }
       if (elapsed >= popTimeMs) {
         this.multiplier = this.round.popMultiplier;
@@ -86,10 +91,10 @@
       return true;
     }
 
-    _settleCashout(multiplier, auto) {
+    _settleCashout(multiplier, auto, capped = false) {
       this.multiplier = multiplier;
       this.state = 'cashed';
-      this.result = { won: true, multiplier, payout: round2(this.bet * multiplier), auto };
+      this.result = { won: true, multiplier, payout: round2(this.bet * multiplier), auto, capped };
       this.emit('cashout', this.result);
     }
 

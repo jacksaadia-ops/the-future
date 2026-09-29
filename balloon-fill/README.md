@@ -7,8 +7,31 @@ A dual-balloon multiplier casino game (play money). Pump air into two balloons a
 ## Rules
 - Multiplier starts at 1.00x and grows exponentially: `m(t) = e^(0.00012 · speed · t_ms)` (normal ≈ 2x at 5.8s, 10x at 19s).
 - Pop time is random from the moment filling starts. The pop point of a normal balloon follows `P(survive to x) = 0.97 / x` (3% house edge).
-- **Golden Balloon** (10% chance, max one at a time): inflates at 2× speed, but its pop *time* is drawn from the exact same distribution — same chance to pop at any moment.
+- **Golden Balloon**: exactly one in every 50 balloons, at a random position within each block of 50 (so it can't be waited for). It inflates at 1.5× speed, its pop *time* is drawn from the exact same distribution as a normal balloon, and it is auto-cashed at **10x** if it survives that long.
 - Auto cash-out settles at exactly the target if it is reached before the pop.
+
+## Payouts (from `npm run simulate`)
+| | Return to player |
+| --- | --- |
+| Normal balloon, any target | 97% |
+| Golden balloon, held to the 10x cap | ~209% (`0.97 × 10^(1/3)`) |
+| All balloons, flat bets, golden held to cap | ~99.2% |
+| "Counting" exploit: bet big only on a guaranteed golden | ~103% |
+
+The last line is why the golden schedule must live on the server (ideally one schedule shared by all players) before any real money is involved: a player who counts their own rounds knows the 50th balloon of a block with no golden yet is golden.
+
+## Rewards
+- **Daily bonus**: $100 on day 1, +$50 per consecutive day up to $500; a missed day resets the streak. Level 20 doubles it.
+- **Daily missions**: 3 per day from a pool of 7, the same for everyone on a given day; rewards chips + XP.
+- **Records**: balloons filled, win rate, best multiplier, biggest win, golden balloons, best streak, net profit.
+- **Biggest wins**: top 5 wins seen in the live feed this session.
+- Haptic feedback on phones (pop, cash-out, golden), following the sound toggle.
+
+## Tests
+```
+npm test            # unit tests + payout checks (Node 18+, no dependencies)
+npm run simulate    # print the payout table above
+```
 
 ## Controls
 - Per balloon: bet (½ / 2×), auto cash-out toggle + target, Start Fill / Cash Out button.
@@ -23,6 +46,7 @@ A dual-balloon multiplier casino game (play money). Pump air into two balloons a
 | `balloon.js` | `BalloonSlot` state machine (idle → filling → cashed/popped), no DOM |
 | `balloonView.js` | Renders a slot (inflation, wobble, pop / float-away, buttons) |
 | `wallet.js`, `progress.js`, `skins.js` | Balance, XP/levels/perks, cosmetic skins |
+| `rewards.js` | Daily bonus, daily missions, personal records (no DOM) |
 | `feed.js` | Live feed + simulated players (replace simulator with a websocket) |
 | `audio.js` | Synthesized SFX; `BF.sound.useFile(name, url)` to use real audio files |
 | `particles.js` | Canvas particles (pop shards, coins, golden glitter, confetti) |

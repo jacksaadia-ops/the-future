@@ -321,6 +321,25 @@ kbd {
   width: 44px; height: 6px; border-radius: 3px; background: #3a3458;
   transition: background 0.3s, box-shadow 0.3s;
 }
+.pump-barrel { /* hand pump beside the nozzle; the rod strokes while filling */
+  position: absolute; left: calc(100% + 8px); bottom: 0;
+  width: 18px; height: 40px; border-radius: 5px 5px 0 0;
+  background: linear-gradient(90deg, #2a2444, #4a4370, #2a2444);
+  border: 1px solid rgba(255,255,255,.1); border-bottom: 0;
+}
+.pump-rod {
+  position: absolute; left: 50%; bottom: 100%; width: 4px; height: 26px; margin-left: -2px;
+  background: #8c85b0; border-radius: 2px;
+}
+.pump-rod::before { /* T-handle */
+  content: ''; position: absolute; top: -5px; left: 50%; width: 30px; height: 7px; margin-left: -15px;
+  border-radius: 4px; background: linear-gradient(180deg, #6d6690, #3a3458);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08);
+}
+.is-filling .pump-rod { animation: pumpStroke 0.55s ease-in-out infinite; }
+.is-golden .pump-rod { animation-duration: 0.37s; }
+.is-filling .pump-rod::before { background: linear-gradient(180deg, var(--b-hi), var(--b-main)); box-shadow: 0 0 10px var(--b-glow); }
+
 .is-filling .pump-base span { background: var(--b-main); box-shadow: 0 0 12px var(--b-main); animation: pumpLight 0.5s ease-in-out infinite alternate; }
 
 /* ───────────── Controls ───────────── */
@@ -499,6 +518,68 @@ kbd {
 .perks li.on { color: var(--text); }
 .perks li.on span { background: linear-gradient(90deg, #ffe27a, #ffb800); color: #2a1400; }
 
+/* ───────────── Rewards ───────────── */
+
+.rewards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.reward-card { padding: 14px 16px 16px; display: flex; flex-direction: column; min-width: 0; }
+.reward-card .panel-head { margin-bottom: 10px; }
+
+.bonus-card { align-items: stretch; }
+.bonus-caption { font-size: 12px; color: var(--muted); text-align: center; }
+.bonus-amount {
+  font-size: 34px; font-weight: 900; text-align: center; margin: 0 0 10px;
+  background: linear-gradient(180deg, #fff3b0, #ffb800); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.bonus-days { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
+.bonus-days span { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.1); }
+.bonus-days span.done { background: linear-gradient(180deg, #ffe27a, #ffb800); box-shadow: 0 0 8px rgba(255, 201, 51, .6); }
+.bonus-days span.now { outline: 2px solid #ffd84d; outline-offset: 2px; animation: pulse 1.2s infinite; }
+.btn-claim {
+  margin-top: auto; height: 46px; border: 0; border-radius: 12px; font-weight: 800; font-size: 15px;
+  color: #2a1a00; background: linear-gradient(180deg, #ffe27a, #ffb800);
+  box-shadow: 0 0 22px rgba(255, 201, 51, .45);
+}
+.btn-claim:disabled { color: var(--muted); background: #221d38; box-shadow: none; }
+.bonus-card.ready { border-color: rgba(255, 201, 51, .45); }
+
+.missions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.missions li { display: flex; flex-direction: column; gap: 5px; }
+.m-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.m-reward { font-size: 12px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+.m-claimed { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.m-claim {
+  flex: none; border: 0; border-radius: 8px; padding: 5px 12px; font-weight: 800; font-size: 12px;
+  color: #04210f; background: linear-gradient(180deg, #62ffb0, var(--green-deep));
+  box-shadow: 0 0 14px rgba(45, 252, 143, .5); animation: pulse 1.2s infinite;
+}
+.m-bar { height: 6px; border-radius: 3px; background: rgba(0,0,0,.4); overflow: hidden; }
+.m-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--violet), var(--pink)); transition: width 0.4s; }
+.missions li.done .m-bar i { background: linear-gradient(90deg, #62ffb0, var(--green-deep)); }
+.missions li.claimed { opacity: 0.55; }
+.m-sub { font-size: 11px; color: var(--muted); }
+
+.records { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.records div { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.records div:last-child { border-bottom: 0; padding-bottom: 0; }
+.records dt { color: var(--muted); }
+.records dd { margin: 0; font-weight: 800; }
+.records dd.pos { color: var(--green); }
+.records dd.neg { color: var(--red); }
+
+.top-wins { list-style: none; margin: 0; padding: 0; counter-reset: tw; display: flex; flex-direction: column; gap: 6px; }
+.top-wins li {
+  counter-increment: tw; display: grid; grid-template-columns: 20px 1fr auto auto; gap: 8px; align-items: center;
+  font-size: 13px; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.035);
+}
+.top-wins li::before { content: counter(tw); font-weight: 900; color: var(--muted); text-align: center; }
+.top-wins li:first-child::before { color: var(--gold); }
+.top-wins li.you { background: rgba(255, 216, 77, .08); box-shadow: inset 0 0 0 1px rgba(255, 216, 77, .35); }
+.top-wins li.empty { display: block; color: var(--muted); }
+.top-wins li.empty::before { content: none; }
+.tw-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tw-mult { color: var(--muted); font-size: 12px; }
+.tw-amt { color: var(--green); font-weight: 800; }
+
 /* ───────────── Skins ───────────── */
 
 .skins { padding: 14px 18px 18px; }
@@ -577,6 +658,7 @@ kbd {
 }
 @keyframes popOut { to { transform: translateX(-50%) scale(1.25); opacity: 0; } }
 @keyframes pumpLight { to { opacity: 0.5; } }
+@keyframes pumpStroke { 50% { transform: translateY(18px); } }
 @keyframes invalid {
   0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); color: var(--red); } 75% { transform: translateX(5px); color: var(--red); }
 }
@@ -593,6 +675,7 @@ kbd {
   .feed-list { height: 300px; }
   .progress { grid-template-columns: auto minmax(0, 1fr); }
   .perks { grid-column: 1 / -1; }
+  .rewards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
@@ -613,6 +696,11 @@ kbd {
   .stage { height: clamp(230px, 38vh, 300px); }
   .mult { font-size: 30px; top: 10px; }
   .golden-banner { top: 48px; font-size: 9px; padding: 3px 8px; }
+  .golden-banner span { display: none; }
+  .pump-barrel { width: 14px; height: 30px; left: calc(100% + 5px); }
+  .pump-rod { height: 18px; }
+  .pump-rod::before { width: 22px; margin-left: -11px; }
+  .rewards { grid-template-columns: 1fr; gap: 12px; }
   .balloon-wrap { bottom: 44px; width: 86%; }
   .pump-base { width: 64px; height: 28px; }
   .result { padding: 8px 10px; }

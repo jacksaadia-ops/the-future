@@ -101,6 +101,13 @@
     unlock() { if (enabled) ensure(); },
     useFile(name, url) { files[name] = url; },
 
+    /** Haptic feedback on phones; follows the sound toggle. */
+    vibrate(pattern) {
+      if (enabled && navigator.vibrate) {
+        try { navigator.vibrate(pattern); } catch (e) { /* unsupported */ }
+      }
+    },
+
     play(name) {
       if (!enabled) return;
       if (files[name]) {

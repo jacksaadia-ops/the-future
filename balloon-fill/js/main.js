@@ -10,9 +10,11 @@
     constructor() {
       const saved = BF.storage.load();
 
-      this.provider = new BF.outcome.LocalOutcomeProvider();
+      this.provider = new BF.outcome.LocalOutcomeProvider(saved.golden);
       this.wallet = new BF.Wallet(saved.balance !== undefined ? saved.balance : C.STARTING_BALANCE);
       this.progress = new BF.Progress(saved.progress);
+      this.rewards = new BF.Rewards(saved.rewards);
+      this.topWins = [];
       this.streak = saved.streak || 0;
       this.bestStreak = saved.bestStreak || 0;
       this.equipped = saved.equipped || ['neon-pink', 'electric-blue'];
@@ -33,12 +35,15 @@
       }));
 
       this.feed = new BF.LiveFeed($('#feed-list'), $('#online-count'), C.FEED_MAX_ITEMS);
+      this.feed.on('entry', (e) => this.trackTopWin(e));
       new BF.LiveFeedSimulator(this.feed).start();
 
       this.bindSlots();
       this.bindUI();
       this.bindProgress();
+      this.bindRewards();
       this.renderProgress();
+      this.renderRewards();
       this.renderSkins();
       this.renderStreak();
       this.renderSoundBtn();
@@ -48,6 +53,8 @@
       requestAnimationFrame(this.frame);
       // Keeps rounds resolving (auto cash-outs, pops) while the tab is in the background.
       setInterval(() => this.slots.forEach((s) => s.update(performance.now())), 250);
+      // New day → new missions and a claimable bonus, even if the tab stays open.
+      setInterval(() => { if (this.rewards.rollover()) this.save(); this.renderRewards(); }, 30000);
     }
 
     skinFor(i) {
@@ -67,13 +74,15 @@
           BF.sound.startInflate(slot.id);
           if (golden) {
             BF.sound.play('golden');
-            this.toast(`★ Balloon ${i + 1} is a Golden Balloon — 2× inflation speed!`, 'gold');
+            BF.sound.vibrate([20, 40, 20, 40, 20]);
+            this.toast(`★ Balloon ${i + 1} is a Golden Balloon — ${C.GOLDEN_SPEED}× speed, pays up to ${C.GOLDEN_CAP}x!`, 'gold');
           }
         });
 
         slot.on('cashout', (res) => {
           BF.sound.stopInflate(slot.id);
           BF.sound.play('cashout');
+          BF.sound.vibrate(30);
           const c = view.center;
           view.onCashout(res);
           this.particles.cashout(c.x, c.y, slot.golden);
@@ -88,6 +97,7 @@
         slot.on('pop', (res) => {
           BF.sound.stopInflate(slot.id);
           BF.sound.play('pop');
+          BF.sound.vibrate([60, 40, 90]);
           const c = view.center;
           this.particles.pop(c.x, c.y, view.colors, clamp(c.radius / 90, 0.6, 1.4));
           view.onPop(res);
@@ -107,6 +117,10 @@
       this.feed.push({
         name: 'You', you: true, won: res.won, golden: slot.golden,
         multiplier: res.multiplier, amount: res.won ? res.payout : slot.bet,
+      });
+      this.rewards.recordRound({
+        won: res.won, multiplier: res.multiplier, payout: res.payout, bet: slot.bet,
+        auto: !!res.auto, golden: slot.golden, streak: this.streak,
       });
       this.floatXp(slot.id, gained);
       this.save();
@@ -146,20 +160,12 @@
       }
 
       BF.sound.unlock();
-      // Only one Golden Balloon at a time. Random order so neither slot is favoured.
+      // Random order so neither slot is favoured when the golden slot comes up.
       const order = indices.map((i, k) => k).sort(() => Math.random() - 0.5);
-      let goldenTaken = this.slots.some((s) => s.isFilling && s.golden);
       const rounds = [];
       indices.forEach((i) => this.pending.add(i));
       inputs.forEach((x) => this.wallet.debit(x.bet));
-      for (const k of order) {
-        const round = await this.provider.createRound({
-          allowGolden: !goldenTaken,
-          goldenChance: this.progress.goldenChance,
-        });
-        if (round.golden) goldenTaken = true;
-        rounds[k] = round;
-      }
+      for (const k of order) rounds[k] = await this.provider.createRound();
       const now = performance.now();
       indices.forEach((i, k) => {
         this.pending.delete(i);
@@ -270,6 +276,48 @@
       });
     }
 
+    bindRewards() {
+      this.rewards.on('change', () => this.renderRewards());
+      this.rewards.on('complete', (def) => {
+        BF.sound.play('golden');
+        this.toast(`Mission complete: ${def.text} — claim your reward!`, 'win');
+      });
+
+      $('#bonus-btn').addEventListener('click', () => {
+        const amount = this.rewards.claimBonus(this.progress.bonusMultiplier);
+        if (!amount) return;
+        this.wallet.credit(amount);
+        BF.sound.play('cashout');
+        BF.sound.vibrate(30);
+        const b = $('#bonus-btn').getBoundingClientRect();
+        this.particles.cashout(b.left + b.width / 2, b.top, true);
+        this.toast(`Daily bonus: ${money(amount)} added (day ${this.rewards.bonusStreak})`, 'win');
+        this.save();
+      });
+
+      $('#mission-list').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-mission]');
+        if (!btn) return;
+        const reward = this.rewards.claimMission(btn.dataset.mission);
+        if (!reward) return;
+        this.wallet.credit(reward.chips);
+        this.progress.addXp(reward.xp);
+        BF.sound.play('cashout');
+        const b = btn.getBoundingClientRect();
+        this.particles.cashout(b.left + b.width / 2, b.top, false);
+        this.toast(`Mission reward: ${money(reward.chips)} + ${reward.xp} XP`, 'win');
+        this.save();
+      });
+    }
+
+    trackTopWin(entry) {
+      if (!entry.won) return;
+      this.topWins.push(entry);
+      this.topWins.sort((a, b) => b.amount - a.amount);
+      this.topWins.length = Math.min(this.topWins.length, 5);
+      if (this.topWins.includes(entry)) this.renderTopWins();
+    }
+
     /* ================= render ================= */
 
     frame(now) {
@@ -361,6 +409,57 @@
       }
     }
 
+    renderRewards() {
+      const r = this.rewards;
+      const streak = r.canClaimBonus ? r.nextBonusStreak : r.bonusStreak;
+      const bonusMult = this.progress.bonusMultiplier;
+      $('#bonus-streak').textContent = `Day ${streak} streak`;
+      $('#bonus-amount').textContent = money(r.bonusAmount() * bonusMult);
+      $('#bonus-days').innerHTML = Array.from({ length: 9 }, (_, k) => {
+        const reached = k + 1 < streak || (k + 1 === streak && !r.canClaimBonus);
+        const current = k + 1 === Math.min(streak, 9) && r.canClaimBonus;
+        return `<span class="${reached ? 'done' : ''}${current ? ' now' : ''}"></span>`;
+      }).join('');
+      const btn = $('#bonus-btn');
+      btn.disabled = !r.canClaimBonus;
+      btn.textContent = r.canClaimBonus ? 'Claim bonus' : 'Come back tomorrow';
+      $('.bonus-card').classList.toggle('ready', r.canClaimBonus);
+      $('#bonus-caption').textContent = r.canClaimBonus ? "Today's bonus" : 'Tomorrow, if you come back';
+
+      $('#mission-list').innerHTML = r.missions.map((m) => {
+        const def = r.missionDef(m.id);
+        const done = r.isComplete(m);
+        const shown = def.id === 'profit250' ? `${money(m.progress)} / ${money(def.target)}` : `${Math.floor(m.progress)} / ${def.target}`;
+        const action = m.claimed ? '<span class="m-claimed">Claimed ✓</span>'
+          : done ? `<button type="button" class="m-claim" data-mission="${m.id}">Claim</button>`
+            : `<span class="m-reward">${money(def.chips)}</span>`;
+        return `<li class="${done ? 'done' : ''}${m.claimed ? ' claimed' : ''}">
+          <div class="m-top"><span>${def.text}</span>${action}</div>
+          <div class="m-bar"><i style="width:${Math.min(100, (m.progress / def.target) * 100)}%"></i></div>
+          <div class="m-sub">${shown} · +${def.xp} XP</div></li>`;
+      }).join('');
+
+      const s = r.stats;
+      const rows = [
+        ['Balloons filled', s.rounds.toLocaleString('en-US')],
+        ['Win rate', s.rounds ? `${Math.round((s.wins / s.rounds) * 100)}%` : '—'],
+        ['Best multiplier', s.bestMultiplier ? mult(s.bestMultiplier) : '—'],
+        ['Biggest win', s.biggestWin ? money(s.biggestWin) : '—'],
+        ['Golden balloons', s.goldens.toLocaleString('en-US')],
+        ['Best streak', String(this.bestStreak)],
+        ['Net profit', `${s.profit < 0 ? '-' : '+'}${money(Math.abs(s.profit))}`],
+      ];
+      $('#records').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd${k === 'Net profit' ? ` class="${s.profit < 0 ? 'neg' : 'pos'}"` : ''}>${v}</dd></div>`).join('');
+      this.renderTopWins();
+    }
+
+    renderTopWins() {
+      $('#top-wins').innerHTML = this.topWins.length
+        ? this.topWins.map((w) => `<li class="${w.you ? 'you' : ''}"><span class="tw-name">${w.you ? 'You' : w.name}</span>
+            <span class="tw-mult">${mult(w.multiplier)}</span><span class="tw-amt">${money(w.amount)}</span></li>`).join('')
+        : '<li class="empty">Waiting for the first big win…</li>';
+    }
+
     renderSkins() {
       const grid = $('#skin-grid');
       grid.innerHTML = '';
@@ -423,6 +522,8 @@
           streak: this.streak,
           bestStreak: this.bestStreak,
           equipped: this.equipped,
+          golden: this.provider.state,
+          rewards: this.rewards.toJSON(),
           sound: BF.sound.enabled,
           settings: this.views.map((v) => v.settings),
         });

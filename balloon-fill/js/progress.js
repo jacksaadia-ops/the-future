@@ -12,8 +12,8 @@
     { level: 7, label: '+10% XP on every round', xpBoost: 0.1 },
     { level: 10, label: 'Free chips refill raised to $5,000', refill: 5000 },
     { level: 12, label: '+20% XP on every round', xpBoost: 0.2 },
-    { level: 15, label: 'Golden Balloon chance 10% → 12%', goldenChance: 0.12 },
-    { level: 20, label: 'Golden Balloon chance 12% → 15%', goldenChance: 0.15 },
+    { level: 15, label: '+30% XP on every round', xpBoost: 0.3 },
+    { level: 20, label: 'Daily bonus doubled', bonusMultiplier: 2 },
   ];
 
   class Progress extends Emitter {
@@ -37,7 +37,7 @@
 
     get xpBoost() { return this.perkValue('xpBoost', 0); }
     get refillAmount() { return this.perkValue('refill', BF.CONFIG.STARTING_BALANCE); }
-    get goldenChance() { return this.perkValue('goldenChance', BF.CONFIG.GOLDEN_CHANCE); }
+    get bonusMultiplier() { return this.perkValue('bonusMultiplier', 1); }
     get nextPerk() { return PERKS.find((p) => p.level > this.level) || null; }
     nextSkin() { return BF.SKINS.find((s) => s.level > this.level) || null; }
     isUnlocked(skin) { return skin.level <= this.level; }

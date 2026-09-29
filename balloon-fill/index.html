@@ -94,6 +94,41 @@
       <ul class="perks" id="perk-list"></ul>
     </section>
 
+    <!-- ───────────── Rewards ───────────── -->
+    <section class="rewards" aria-label="Rewards">
+      <div class="panel reward-card bonus-card">
+        <div class="panel-head">
+          <h2>Daily Bonus</h2>
+          <span class="muted" id="bonus-streak">Day 1</span>
+        </div>
+        <div class="bonus-caption" id="bonus-caption">Today's bonus</div>
+        <div class="bonus-amount" id="bonus-amount">$100.00</div>
+        <div class="bonus-days" id="bonus-days" aria-hidden="true"></div>
+        <button class="btn-claim" id="bonus-btn" type="button">Claim bonus</button>
+      </div>
+
+      <div class="panel reward-card">
+        <div class="panel-head">
+          <h2>Daily Missions</h2>
+          <span class="muted">Reset at midnight</span>
+        </div>
+        <ul class="missions" id="mission-list"></ul>
+      </div>
+
+      <div class="panel reward-card">
+        <div class="panel-head"><h2>Your Records</h2></div>
+        <dl class="records" id="records"></dl>
+      </div>
+
+      <div class="panel reward-card">
+        <div class="panel-head">
+          <h2>Biggest Wins</h2>
+          <span class="muted">This session</span>
+        </div>
+        <ol class="top-wins" id="top-wins"></ol>
+      </div>
+    </section>
+
     <!-- ───────────── Skins ───────────── -->
     <section class="panel skins" aria-label="Balloon skins">
       <div class="panel-head">
@@ -104,7 +139,7 @@
     </section>
 
     <footer class="foot">
-      Play-money demo · Each balloon pops at a random moment with a 3% house edge · Golden balloons inflate at 2× speed with identical pop timing.
+      Play-money demo · Each balloon pops at a random moment with a 3% house edge · One Golden Balloon appears at a random point in every 50 balloons: 1.5× speed, same pop timing, auto-cashed at 10x.
       <button class="link-btn" id="reset-btn" type="button">Reset progress</button>
     </footer>
   </div>
@@ -120,7 +155,7 @@
       </header>
       <div class="stage" data-ref="stage">
         <div class="stage-glow"></div>
-        <div class="golden-banner" data-ref="goldenBanner">★ Golden · 2× speed</div>
+        <div class="golden-banner" data-ref="goldenBanner"></div>
         <div class="mult" data-ref="mult">1.00x</div>
         <div class="result" data-ref="result"></div>
         <div class="balloon-wrap" data-ref="wrap">
@@ -129,6 +164,7 @@
         <div class="pump" aria-hidden="true">
           <div class="pump-nozzle"></div>
           <div class="pump-base"><span data-ref="pumpLight"></span></div>
+          <div class="pump-barrel"><div class="pump-rod"></div></div>
         </div>
       </div>
       <div class="controls">
@@ -166,6 +202,7 @@
   <script src="js/particles.js"></script>
   <script src="js/skins.js"></script>
   <script src="js/progress.js"></script>
+  <script src="js/rewards.js"></script>
   <script src="js/wallet.js"></script>
   <script src="js/balloon.js"></script>
   <script src="js/balloonView.js"></script>
