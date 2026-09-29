@@ -1,6 +1,6 @@
 # Balloon Fill — Game Math Report (PAR sheet)
 
-Generated 2026-09-29 by `tools/math-report.js` from code version `b2a1e6c`.
+Generated 2026-09-29 by `tools/math-report.js` from code version `15e4912`.
 All theoretical values are computed exactly from the game code; simulated values run the real settlement code.
 Simulation size: 10,000,000 balloons per RTP setting.
 
@@ -18,7 +18,7 @@ multiplier at which it is cashed out (manually or by auto cash-out) before its b
 
 | Parameter | Value |
 | --- | --- |
-| RTP settings offered | 94%, 96%, 97% (default 97%) |
+| RTP settings offered | 94%, 95.5%, 96%, 97% (default 95.5%) |
 | Balloons per round | 2, independent outcomes |
 | Multiplier curve | m(t) = e^(0.00012 × speed × t), t in ms; normal reaches 2x in 5.78 s |
 | Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |
@@ -53,67 +53,68 @@ minimum RTP using the strategy with the greatest return):
 
 | RTP setting | k (normal balloon return) | Instant-pop rate | Best play (theory) | Best play (simulated, 95% CI) | Lowest possible play |
 | --- | --- | --- | --- | --- | --- |
-| 94% | 92.929% | 7.992% | 94.0000% | 93.997% ± 0.067% | 92.008% |
-| 96% | 94.906% | 6.034% | 96.0000% | 96.022% ± 0.067% | 93.966% |
-| 97% | 95.894% | 5.055% | 97.0000% | 97.008% ± 0.067% | 94.945% |
+| 94% | 92.929% | 7.992% | 94.0000% | 94.023% ± 0.067% | 92.008% |
+| 95.5% | 94.411% | 6.523% | 95.5000% | 95.503% ± 0.067% | 93.477% |
+| 96% | 94.906% | 6.034% | 96.0000% | 95.978% ± 0.067% | 93.966% |
+| 97% | 95.894% | 5.055% | 97.0000% | 96.947% ± 0.067% | 94.945% |
 
 - **Best play**: any normal-balloon target (all return k), golden balloons cashed at the best golden target.
 - **Any auto cash-out target**: between k and best play, depending on the golden-balloon target.
 - **Lowest possible play**: manual cash-out at the very start (paid 1.00x after rounding down to the cent) returns k / 1.01.
   Manual cash-outs in general return between k/1.01 and k because the multiplier is rounded down to the cent.
 
-## 5. Detail for the default 97% setting
+## 5. Detail for the default 95.5% setting
 
-k = 0.958943.
+k = 0.944114.
 
 ### 5.1 Normal balloon — per cash-out target (bet of 1)
 
 | Target | P(win) | Hit frequency | RTP | Std. deviation |
 | --- | --- | --- | --- | --- |
-| 1.01x | 94.945% | 1 in 1.05 | 95.894% | 0.221 |
-| 1.10x | 87.177% | 1 in 1.15 | 95.894% | 0.368 |
-| 1.25x | 76.715% | 1 in 1.30 | 95.894% | 0.528 |
-| 1.50x | 63.930% | 1 in 1.56 | 95.894% | 0.720 |
-| 2.00x | 47.947% | 1 in 2.09 | 95.894% | 0.999 |
-| 3.00x | 31.965% | 1 in 3.13 | 95.894% | 1.399 |
-| 5.00x | 19.179% | 1 in 5.21 | 95.894% | 1.969 |
-| 10.00x | 9.589% | 1 in 10 | 95.894% | 2.944 |
-| 20.00x | 4.795% | 1 in 21 | 95.894% | 4.273 |
-| 50.00x | 1.918% | 1 in 52 | 95.894% | 6.858 |
-| 100.00x | 0.959% | 1 in 104 | 95.894% | 9.745 |
-| 1000.00x | 0.096% | 1 in 1,043 | 95.894% | 30.952 |
-| 10000.00x | 0.010% | 1 in 10,428 | 95.894% | 97.921 |
+| 1.01x | 93.477% | 1 in 1.07 | 94.411% | 0.249 |
+| 1.10x | 85.829% | 1 in 1.17 | 94.411% | 0.384 |
+| 1.25x | 75.529% | 1 in 1.32 | 94.411% | 0.537 |
+| 1.50x | 62.941% | 1 in 1.59 | 94.411% | 0.724 |
+| 2.00x | 47.206% | 1 in 2.12 | 94.411% | 0.998 |
+| 3.00x | 31.470% | 1 in 3.18 | 94.411% | 1.393 |
+| 5.00x | 18.882% | 1 in 5.30 | 94.411% | 1.957 |
+| 10.00x | 9.441% | 1 in 11 | 94.411% | 2.924 |
+| 20.00x | 4.721% | 1 in 21 | 94.411% | 4.242 |
+| 50.00x | 1.888% | 1 in 53 | 94.411% | 6.805 |
+| 100.00x | 0.944% | 1 in 106 | 94.411% | 9.671 |
+| 1000.00x | 0.094% | 1 in 1,059 | 94.411% | 30.712 |
+| 10000.00x | 0.009% | 1 in 10,592 | 94.411% | 97.161 |
 
 ### 5.2 Golden balloon — per cash-out target (bet of 1)
 
 | Target | P(win) | RTP |
 | --- | --- | --- |
-| 1.50x | 72.647% | 108.971% |
-| 2.00x | 60.311% | 120.622% |
-| 3.00x | 45.882% | 137.647% |
-| 5.00x | 32.728% | 163.642% |
-| 7.50x | 24.972% | 187.294% |
-| 9.99x (best) | 20.667% | 206.462% |
-| 10.00x (cap) | 20.622% | 206.224% |
+| 1.50x | 71.524% | 107.286% |
+| 2.00x | 59.378% | 118.757% |
+| 3.00x | 45.173% | 135.519% |
+| 5.00x | 32.222% | 161.112% |
+| 7.50x | 24.586% | 184.397% |
+| 9.99x (best) | 20.347% | 203.269% |
+| 10.00x (cap) | 20.304% | 203.035% |
 
 ### 5.3 Pop-point distribution (normal balloon)
 
 | Pops before | Probability |
 | --- | --- |
-| 1.01x | 5.055% |
-| 1.50x | 36.070% |
-| 2.00x | 52.053% |
-| 3.00x | 68.035% |
-| 5.00x | 80.821% |
-| 10.00x | 90.411% |
-| 100.00x | 99.041% |
-| (median pop point) | 1.92x |
+| 1.01x | 6.523% |
+| 1.50x | 37.059% |
+| 2.00x | 52.794% |
+| 3.00x | 68.530% |
+| 5.00x | 81.118% |
+| 10.00x | 90.559% |
+| 100.00x | 99.056% |
+| (median pop point) | 1.89x |
 
 ### 5.4 Golden frequency
 
 - Per balloon: 1.00% (1 in 100).
 - Per round (at least one of 2): 1.99%.
-- Golden balloon reaching the 10.00x cap: 20.622% of golden balloons.
+- Golden balloon reaching the 10.00x cap: 20.304% of golden balloons.
 - Golden status is drawn independently for every balloon, so past rounds carry no information about future ones.
 
 ## 6. Round timing (from 200,000 simulated rounds)
@@ -121,13 +122,13 @@ k = 0.958943.
 | Measure | Value |
 | --- | --- |
 | Fixed time per round (betting + reveal + results) | 9.0 s |
-| Flight time (until both balloons finish) — mean / median / 95th percentile | 12.1 s / 9.8 s / 30.4 s |
-| Mean round length | 21.1 s |
-| Rounds per hour | ~170 |
+| Flight time (until both balloons finish) — mean / median / 95th percentile | 12.0 s / 9.7 s / 30.1 s |
+| Mean round length | 21.0 s |
+| Rounds per hour | ~172 |
 
 ## 7. Exposure
 
-- Maximum multiplier on a normal balloon: 10,000x (probability 0.0096% per balloon).
+- Maximum multiplier on a normal balloon: 10,000x (probability 0.0094% per balloon).
 - Maximum single payout at the current bet limit: 100,000,000 (bet 10,000 × 10,000x).
 - **Recommendation:** add an operator-configurable maximum win per bet (a common requirement for operators),
   and state it in the game rules. Capping winnings reduces RTP slightly for the highest targets; this report must then be regenerated.
