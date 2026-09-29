@@ -50,6 +50,9 @@
           <span class="balance-value" id="balance-value">$0.00</span>
         </div>
         <button class="btn-refill hidden" id="refill-btn" type="button">Free chips</button>
+        <button class="icon-btn fair-btn" id="fair-btn" type="button" aria-label="Provably fair" title="Provably fair">
+          <svg viewBox="0 0 24 24"><path d="M12 2 20 5.5v6c0 5-3.4 9.2-8 10.5C7.4 20.7 4 16.5 4 11.5v-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <button class="icon-btn" id="rules-btn" type="button" aria-label="Game rules and payouts" title="Rules &amp; payouts">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.3" r="1.2" fill="currentColor"/></svg>
         </button>
@@ -148,12 +151,23 @@
 
     <footer class="foot">
       <button class="link-btn" id="rules-link" type="button">Rules &amp; payouts</button> ·
+      <button class="link-btn" id="fair-link" type="button">Provably fair</button> ·
       Play-money demo · Shared rounds: bets lock after a 6-second window, then both balloons fill · Every balloon has a 1% chance to turn golden after bets lock: 1.5× speed, same pop timing, pays 10x if it survives · RTP <span id="rtp-value">97%</span>.
       <button class="link-btn" id="reset-btn" type="button">Reset progress</button>
     </footer>
   </div>
 
   <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <dialog class="rules-dialog fair-dialog" id="fair-dialog" aria-labelledby="fair-title">
+    <div class="rules-head">
+      <h2 id="fair-title">Provably Fair</h2>
+      <button class="icon-btn" id="fair-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rules-body" id="fair-body"></div>
+  </dialog>
 
   <dialog class="rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
     <div class="rules-head">
@@ -220,6 +234,7 @@
   <script src="js/utils.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/outcome.js"></script>
+  <script src="js/fair.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/skins.js"></script>
@@ -231,6 +246,7 @@
   <script src="js/balloonView.js"></script>
   <script src="js/feed.js"></script>
   <script src="js/rules.js"></script>
+  <script src="js/fairView.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

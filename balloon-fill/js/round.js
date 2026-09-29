@@ -3,14 +3,16 @@
  *
  *   betting (BETTING_MS) → reveal (REVEAL_MS) → flying → ended (ROUND_END_MS) → betting …
  *
- * - betting: bets can be placed or cancelled. The outcome is already drawn
- *   (a server would publish its hash here) but not revealed.
+ * - betting: bets can be placed or cancelled. The provider commits to this
+ *   round's server seed (its hash is public); the first three bettors'
+ *   client seeds are collected.
+ * - lock:    the provider derives the result from the server seed + client seeds.
  * - reveal:  bets are locked; golden balloons are revealed.
  * - flying:  both balloons inflate from the same instant; each pops (or hits
  *            its cap) independently. Ends when every balloon has finished.
  * - ended:   results shown, then the next betting window opens.
  *
- * Events: 'betting' {roundNo, closesAt}, 'locked' {roundNo, balloons},
+ * Events: 'betting' {roundNo, closesAt, commitment}, 'locked' {roundNo, balloons},
  *         'launch' {startAt}, 'balloonEnd' SharedBalloon, 'ended' {roundNo}
  *
  * All transitions are timestamped from the schedule, not from when update()
@@ -59,8 +61,21 @@
       this.phase = 'idle';
       this.roundNo = 0;
       this.balloons = [];
-      this.pending = null; // next round's outcome, drawn but not revealed
+      this.pending = null; // this round's outcome once derived at lock
+      this.bettors = []; // first bettors whose client seeds feed the result
+      this.history = []; // revealed proofs of past rounds, newest first
     }
+
+    /** Records a bettor's client seed; only the first CLIENT_SEEDS bettors count. */
+    addBettor(name, seed) {
+      const max = BF.fair ? BF.fair.CLIENT_SEEDS : 3;
+      if (this.phase !== 'betting' || this.bettors.length >= max) return;
+      if (this.bettors.some((b) => b.name === name)) return;
+      this.bettors.push({ name, seed });
+    }
+
+    /** The revealed proof for a finished round, if still in history. */
+    proofFor(roundNo) { return this.history.find((h) => h.roundNo === roundNo) || null; }
 
     start(now) { this._beginBetting(now); }
 
@@ -85,7 +100,16 @@
     _step(now) {
       switch (this.phase) {
         case 'betting':
-          if (now < this.closesAt || !this.pending) return false;
+          if (now < this.closesAt) return false;
+          if (!this.requested) {
+            // Bets are closed: derive the result from the committed seed + collected client seeds.
+            this.requested = true;
+            const roundNo = this.roundNo;
+            this.provider.createRound(this.bettors.slice()).then((round) => {
+              if (this.roundNo === roundNo) this.pending = round;
+            });
+          }
+          if (!this.pending) return false;
           this._lock(this.closesAt);
           return true;
         case 'reveal':
@@ -100,6 +124,14 @@
           const endAt = this.startAt + Math.max(...this.balloons.map((b) => b.endTimeMs));
           this.phase = 'ended';
           this.nextAt = endAt + C.ROUND_END_MS;
+          if (this.round.proof) {
+            this.history.unshift({
+              roundNo: this.roundNo,
+              ...this.round.proof,
+              finals: this.balloons.map((b) => ({ multiplier: b.multiplier, state: b.state, golden: b.golden })),
+            });
+            this.history.length = Math.min(this.history.length, 50);
+          }
           this.emit('ended', { roundNo: this.roundNo });
           return true;
         }
@@ -119,9 +151,10 @@
       this.closesAt = t + C.BETTING_MS;
       this.balloons = [];
       this.pending = null;
-      const roundNo = this.roundNo;
-      this.provider.createRound().then((round) => { if (this.roundNo === roundNo) this.pending = round; });
-      this.emit('betting', { roundNo, closesAt: this.closesAt });
+      this.requested = false;
+      this.bettors = [];
+      this.commitment = this.provider.commit ? this.provider.commit() : null;
+      this.emit('betting', { roundNo: this.roundNo, closesAt: this.closesAt, commitment: this.commitment });
     }
 
     _lock(t) {

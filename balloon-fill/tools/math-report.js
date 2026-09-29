@@ -140,12 +140,12 @@ function build() {
   L(`| Golden cap | ${fx(C.GOLDEN_CAP)} (paid automatically to every bet still in) |`);
   L(`| Bet limits | ${C.MIN_BET.toFixed(2)} – ${C.MAX_BET.toLocaleString('en-US')} per balloon |`);
   L(`| Round timing | betting ${C.BETTING_MS / 1000} s, lock/reveal ${C.REVEAL_MS / 1000} s, results ${C.ROUND_END_MS / 1000} s |`);
-  L(`| Random source | CSPRNG (\`crypto.getRandomValues\`, 52 bits per draw) — client-side in this build |`);
+  L('| Random source | Provably fair: SHA-256(serverSeed : clientSeed1 : clientSeed2 : clientSeed3 : balloonIndex); first 52 bits → pop point, next 52 bits → golden. Server seed from a CSPRNG, committed by its SHA-256 before betting opens. Runs client-side in this build. |');
   L();
 
   L('## 3. Mathematical model');
   L();
-  L('For each balloon a uniform U in [0, 1) is drawn and converted to a normal-curve pop point:');
+  L('For each balloon a uniform U in [0, 1) — the first 52 bits of the balloon\'s provably-fair hash — is converted to a normal-curve pop point:');
   L();
   L('    P = max(1.00, floor_to_cent( k / (1 − U) ))       capped at the maximum multiplier');
   L();
@@ -239,7 +239,8 @@ function build() {
   L('## 8. Open items before certification');
   L();
   L('- Move outcome generation, the round clock, bet acceptance and cash-out confirmation to the server; certify the RNG.');
-  L('- Provably-fair commitment: publish the hash of each round\'s server seed before betting closes, reveal the seed after the round.');
+  L('- Provably fair is implemented (server seed committed by hash before betting, first 3 bettors\' client seeds, per-round verification in the game).');
+  L('  In production the seeds must be generated and held on the server, and the verification page served from outside the game client.');
   L('- Disconnection: a bet that is locked in must keep running and still honour auto cash-out if the player disconnects.');
   L('  (This client-only build refunds bets that were not yet locked and forfeits bets that were in flight.)');
   L('- Maximum win per bet (see §7), responsible-gambling controls, and jurisdiction-specific disclosures.');

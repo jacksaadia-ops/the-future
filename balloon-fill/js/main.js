@@ -25,7 +25,8 @@
       BF.sound.setEnabled(saved.sound !== false);
       this.particles = new BF.ParticleSystem($('#fx-canvas'));
 
-      this.engine = new BF.RoundEngine(new BF.outcome.LocalRoundProvider());
+      this.clientSeed = saved.clientSeed || BF.fair.newClientSeed();
+      this.engine = new BF.RoundEngine(new BF.fair.FairRoundProvider());
       this.slots = [];
       this.views = [];
       const settings = saved.settings || [];
@@ -126,7 +127,7 @@
           this.particles.confetti(c.x, c.y);
         }
         const res = hadBet ? { won: slot.status === 'cashed', payout: slot.result && slot.result.payout, lost: slot.amount } : null;
-        view.onBalloonEnd(b, res);
+        view.onBalloonEnd(b, res, this.engine.roundNo);
       });
     }
 
@@ -207,6 +208,7 @@
       }
       this.wallet.debit(amount);
       slot.place(amount, auto);
+      this.engine.addBettor('You', this.clientSeed); // counts if you're among the first bettors
       BF.sound.play('click');
       this.save();
       return true;
@@ -358,6 +360,7 @@
       $('#rules-link').addEventListener('click', openRules);
       $('#rules-close').addEventListener('click', () => rules.close());
       rules.addEventListener('click', (e) => { if (e.target === rules) rules.close(); }); // backdrop
+      this.bindFair();
 
       $('#sound-btn').addEventListener('click', () => {
         BF.sound.setEnabled(!BF.sound.enabled);
@@ -385,7 +388,7 @@
       });
 
       document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.repeat || $('#rules-dialog').open) return;
+        if (e.target.tagName === 'INPUT' || e.repeat || $('#rules-dialog').open || $('#fair-dialog').open) return;
         if (e.code === 'Space') {
           if (e.target.tagName === 'BUTTON') return; // let the focused button handle it
           e.preventDefault();
@@ -400,6 +403,74 @@
         void box.offsetWidth;
         box.classList.add(delta >= 0 ? 'up' : 'down');
       });
+    }
+
+    /* ================= provably fair ================= */
+
+    bindFair() {
+      const dlg = $('#fair-dialog');
+      const body = $('#fair-body');
+      this.fairView = null; // null = overview, else round number
+      const show = (roundNo = null) => {
+        this.fairView = roundNo;
+        this.renderFair();
+        body.scrollTop = 0;
+        if (!dlg.open) dlg.showModal();
+      };
+      $('#fair-btn').addEventListener('click', () => show());
+      $('#fair-link').addEventListener('click', () => show());
+      $('#fair-close').addEventListener('click', () => dlg.close());
+      dlg.addEventListener('click', (e) => {
+        if (e.target === dlg) { dlg.close(); return; }
+        const verify = e.target.closest('[data-verify-round]');
+        if (verify) show(Number(verify.dataset.verifyRound));
+        else if (e.target.closest('[data-fair-back]')) show();
+        else if (e.target.closest('[data-fair-random]')) $('#fair-seed-input').value = BF.fair.newClientSeed();
+        else if (e.target.closest('[data-fair-save]')) this.saveClientSeed($('#fair-seed-input').value);
+      });
+      // Balloon history chips open that round's proof.
+      this.views.forEach((v) => v.r.history.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-round]');
+        if (chip) show(Number(chip.dataset.round));
+      }));
+      // Refresh the overview when a round changes phase (new fingerprint, new history row).
+      ['betting', 'locked', 'ended'].forEach((evt) => this.engine.on(evt, () => {
+        if (dlg.open && this.fairView === null) this.renderFair();
+      }));
+    }
+
+    renderFair() {
+      const body = $('#fair-body');
+      if (this.fairView === null) {
+        const typing = document.activeElement && document.activeElement.id === 'fair-seed-input';
+        if (typing) return; // don't wipe what the player is typing
+        body.innerHTML = BF.fairView.overview({
+          clientSeed: this.clientSeed,
+          commitment: this.engine.commitment,
+          nextHash: this.engine.provider.nextServerSeedHash,
+          phase: this.engine.phase,
+          roundNo: this.engine.roundNo,
+          history: this.engine.history,
+        });
+        return;
+      }
+      const proof = this.engine.proofFor(this.fairView);
+      body.innerHTML = proof
+        ? BF.fairView.round(proof)
+        : `<button type="button" class="fair-link back" data-fair-back>← All rounds</button>
+           <p>Round #${this.fairView} ${this.fairView === this.engine.roundNo ? 'is still in progress. Its server seed is revealed when the round ends.' : 'is no longer in the recent history.'}</p>`;
+    }
+
+    saveClientSeed(value) {
+      const seed = String(value).trim();
+      if (!/^[A-Za-z0-9]{1,32}$/.test(seed)) {
+        this.toast('Client seed must be 1–32 letters or numbers', 'error');
+        return;
+      }
+      this.clientSeed = seed;
+      this.toast('Client seed saved — used when you are one of the first 3 bettors', 'win');
+      this.save();
+      this.renderFair();
     }
 
     bindProgress() {
@@ -685,6 +756,7 @@
           streak: this.streak,
           bestStreak: this.bestStreak,
           equipped: this.equipped,
+          clientSeed: this.clientSeed,
           sound: BF.sound.enabled,
           settings: this.views.map((v) => v.settings),
         });

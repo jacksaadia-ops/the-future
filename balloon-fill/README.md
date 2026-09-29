@@ -59,7 +59,8 @@ settings so the published RTP and limits always match the game.
 | File | Role |
 | --- | --- |
 | `config.js` | All tunables (growth rate, house edge, golden chance, limits) |
-| `outcome.js` | **Outcome provider** — the only code that decides pops. Swap for a server / provably-fair provider |
+| `outcome.js` | Odds model (pop-point distribution, golden factor, RTP → k) |
+| `fair.js` | Provably fair: SHA-256, seed handling, round derivation, `verify()`, `FairRoundProvider` |
 | `round.js` | `RoundEngine` shared round timeline (betting → reveal → flying → ended) + `SharedBalloon`, no DOM |
 | `balloon.js` | `BetSlot` — the player's bet on one balloon (placed → active → cashed/lost, queued next bet), no DOM |
 | `balloonView.js` | Renders a shared balloon + the player's bet (inflation, wobble, pop / float-away, buttons) |
@@ -71,5 +72,16 @@ settings so the published RTP and limits always match the game.
 | `storage.js` | localStorage persistence (safe if storage is blocked) |
 | `main.js` | Controller wiring everything together + render loop |
 
+## Provably fair
+Each round's result comes from a **server seed**, locked in before betting opens by showing its SHA-256 fingerprint, plus the **client seeds of the first 3 players to bet**. When bets lock, for each balloon:
+
+```
+hash    = SHA-256( serverSeed : clientSeed1 : clientSeed2 : clientSeed3 : balloonIndex )
+u       = first 13 hex digits / 2^52   → pop point = floor_to_cent( k / (1 − u) ), minimum 1.00
+g       = next 13 hex digits  / 2^52   → golden if g < 0.01
+```
+
+After the round the server seed is revealed. In the game, the shield icon shows the current and next round's fingerprints, lets players set their own client seed, and lists recent rounds with a **Verify** view that recomputes every step. Clicking any balloon history chip opens that round. Logic: `js/fair.js` (includes a dependency-free SHA-256, tested against Node's crypto); UI: `js/fairView.js`.
+
 ### Going server-authoritative
-The round engine already asks for each round's outcome when betting opens and reveals it only when bets lock. A real server would publish `SHA256(serverSeed)` at that moment, derive each balloon from `HMAC_SHA256(serverSeed, roundId:balloonIndex)`, run the round clock, confirm every bet and cash-out, and publish `serverSeed` afterwards so players can verify each round.
+`FairRoundProvider` (`commit()` when betting opens, `createRound(clientSeeds)` when bets lock) is the server boundary: move it to the backend unchanged, keep the seeds there until each round ends, run the round clock server-side and confirm every bet and cash-out there.

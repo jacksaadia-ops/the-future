@@ -70,7 +70,10 @@
             name: pick(NAMES), balloon: b,
             bet: pick(BET_SIZES) * (Math.random() < 0.1 ? 4 : 1),
             target: Math.random() < 0.8 ? pick(TARGETS) : Math.round(rand(1.1, 20) * 100) / 100,
-            joinAt: now + rand(0, Math.max(0, closesAt - now - 300)),
+            // First joins come a moment after betting opens, so quick players can be among the seed contributors.
+            joinAt: now + 400 + rand(0, Math.max(0, closesAt - now - 700)),
+            seed: BF.fair.newClientSeed(),
+            registered: false,
             done: false,
           });
         }
@@ -90,6 +93,14 @@
 
     /** Cash out crowd players whose target the shared balloon has passed. */
     update() {
+      if (this.engine.phase === 'betting') {
+        const now = performance.now();
+        this.players
+          .filter((p) => !p.registered && p.joinAt <= now)
+          .sort((a, b) => a.joinAt - b.joinAt)
+          .forEach((p) => { p.registered = true; this.engine.addBettor(p.name, p.seed); });
+        return;
+      }
       if (this.engine.phase !== 'flying') return;
       this.engine.balloons.forEach((b) => {
         if (!b.isFilling) return;

@@ -111,7 +111,7 @@
     }
 
     /** The shared balloon popped or hit its cap. `bet` is the player's result, if any. */
-    onBalloonEnd(balloon, bet) {
+    onBalloonEnd(balloon, bet, roundNo) {
       this.el.classList.remove('is-filling');
       let sub = '';
       if (bet && bet.won) sub = `<span class="win">You won +${money(bet.payout)}</span>`;
@@ -129,7 +129,7 @@
         void this.r.stage.offsetWidth;
         this.r.stage.classList.add('shake');
       }
-      this.addHistory(balloon);
+      this.addHistory(balloon, roundNo);
     }
 
     showResult(title, sub, kind) {
@@ -137,11 +137,14 @@
       this.r.result.className = `result show ${kind}`;
     }
 
-    addHistory(balloon) {
-      const chip = document.createElement('span');
+    addHistory(balloon, roundNo) {
+      const chip = document.createElement('button');
       const m = floor2(balloon.multiplier);
+      chip.type = 'button';
       chip.className = `hchip ${balloon.golden ? 'gold' : m >= 2 ? 'win' : 'lose'}`;
       chip.textContent = mult(m);
+      chip.dataset.round = roundNo;
+      chip.title = `Round #${roundNo} — verify`;
       this.r.history.prepend(chip);
       while (this.r.history.children.length > HISTORY_MAX) this.r.history.lastChild.remove();
     }

@@ -68,7 +68,7 @@
 
       <h3>Other rules</h3>
       <ul>
-        <li>The result of every balloon is decided before bets lock and cannot be influenced by the bets placed.</li>
+        <li><b>Provably fair:</b> each round's result comes from a server seed that is locked in (by publishing its SHA-256 fingerprint) before betting opens, combined with the client seeds of the first ${BF.fair ? BF.fair.CLIENT_SEEDS : 3} players to bet. After the round the server seed is revealed so anyone can verify the result. Open the shield icon for details.</li>
         <li>Winnings are paid to your balance immediately and shown rounded to the cent.</li>
         <li><b>Disconnection (play-money demo):</b> if you close the page, bets that were not yet locked are refunded; bets on balloons that were filling are lost.</li>
         <li>Malfunction voids all pays and plays.</li>
