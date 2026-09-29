@@ -60,14 +60,19 @@
     <!-- ───────────── Game + feed ───────────── -->
     <main class="layout">
       <section class="game" aria-label="Balloons">
+        <div class="round-bar" id="round-bar">
+          <span class="round-no" id="round-no">Round #1</span>
+          <span class="round-phase" id="round-phase">Place your bets</span>
+          <div class="round-progress"><div class="round-progress-fill" id="round-progress"></div></div>
+        </div>
         <div class="balloons" id="balloons"></div>
 
         <div class="bigbar">
           <button class="btn-big" id="big-btn" type="button">
-            <span class="big-label" id="big-label">Start Both</span>
+            <span class="big-label" id="big-label">Bet on Both</span>
             <span class="big-sub" id="big-sub">Total bet $20.00</span>
           </button>
-          <p class="hint">Space = main button · <kbd>1</kbd> / <kbd>2</kbd> = start or cash out a balloon</p>
+          <p class="hint">Bet on one balloon or both · Space = main button · <kbd>1</kbd> / <kbd>2</kbd> = bet or cash out a balloon</p>
         </div>
       </section>
 
@@ -139,7 +144,7 @@
     </section>
 
     <footer class="foot">
-      Play-money demo · Each balloon pops at a random moment with a 3% house edge · One Golden Balloon appears at a random point in every 50 balloons: 1.5× speed, same pop timing, auto-cashed at 10x.
+      Play-money demo · Shared rounds: bets lock after a 10-second window, then both balloons fill · Every balloon has a 1% chance to turn golden after bets lock: 1.5× speed, same pop timing, pays 10x if it survives · RTP <span id="rtp-value">97%</span>.
       <button class="link-btn" id="reset-btn" type="button">Reset progress</button>
     </footer>
   </div>
@@ -151,13 +156,16 @@
     <section class="panel balloon-card">
       <header class="card-head">
         <span class="slot-label">Balloon <b data-ref="num"></b></span>
+        <span class="crowd" data-ref="crowd"></span>
         <div class="history" data-ref="history"></div>
       </header>
       <div class="stage" data-ref="stage">
         <div class="stage-glow"></div>
         <div class="golden-banner" data-ref="goldenBanner"></div>
         <div class="mult" data-ref="mult">1.00x</div>
+        <div class="phase-pill" data-ref="phasePill"></div>
         <div class="result" data-ref="result"></div>
+        <div class="cash-badge" data-ref="badge"></div>
         <div class="balloon-wrap" data-ref="wrap">
           <div class="balloon" data-ref="balloon"></div>
         </div>
@@ -186,7 +194,7 @@
           </div>
         </div>
         <button type="button" class="btn-action" data-ref="action">
-          <span class="action-label" data-ref="actionLabel">Start Fill</span>
+          <span class="action-label" data-ref="actionLabel">Place Bet</span>
           <span class="action-sub" data-ref="actionSub"></span>
         </button>
       </div>
@@ -204,6 +212,7 @@
   <script src="js/progress.js"></script>
   <script src="js/rewards.js"></script>
   <script src="js/wallet.js"></script>
+  <script src="js/round.js"></script>
   <script src="js/balloon.js"></script>
   <script src="js/balloonView.js"></script>
   <script src="js/feed.js"></script>

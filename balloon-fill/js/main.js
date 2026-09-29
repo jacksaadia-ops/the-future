@@ -1,6 +1,7 @@
 /**
- * Game controller — wires logic (BalloonSlot, Wallet, Progress, outcome
- * provider) to views (BalloonView, feed, progress, skins) and runs the loop.
+ * Game controller — wires the shared round engine and the player's bets
+ * (RoundEngine, BetSlot, Wallet, Progress, Rewards) to the views and runs the
+ * render loop.
  */
 (function () {
   const C = BF.CONFIG;
@@ -10,34 +11,39 @@
     constructor() {
       const saved = BF.storage.load();
 
-      this.provider = new BF.outcome.LocalOutcomeProvider(saved.golden);
-      this.wallet = new BF.Wallet(saved.balance !== undefined ? saved.balance : C.STARTING_BALANCE);
+      // Bets placed but not yet locked when the page closed are refunded.
+      const refund = saved.openBets || 0;
+      this.wallet = new BF.Wallet((saved.balance !== undefined ? saved.balance : C.STARTING_BALANCE) + refund);
       this.progress = new BF.Progress(saved.progress);
       this.rewards = new BF.Rewards(saved.rewards);
-      this.topWins = [];
       this.streak = saved.streak || 0;
       this.bestStreak = saved.bestStreak || 0;
       this.equipped = saved.equipped || ['neon-pink', 'electric-blue'];
-      this.pending = new Set(); // slots waiting on the outcome provider
+      this.topWins = [];
       this.displayBalance = this.wallet.balance;
 
       BF.sound.setEnabled(saved.sound !== false);
       this.particles = new BF.ParticleSystem($('#fx-canvas'));
 
-      const mount = $('#balloons');
+      this.engine = new BF.RoundEngine(new BF.outcome.LocalRoundProvider());
+      this.slots = [];
+      this.views = [];
       const settings = saved.settings || [];
-      this.slots = [0, 1].map((i) => new BF.BalloonSlot(i));
-      this.views = this.slots.map((slot, i) => new BF.BalloonView(slot, mount, {
-        bet: settings[i] ? settings[i].bet : C.DEFAULT_BETS[i],
-        auto: settings[i] ? settings[i].auto : C.DEFAULT_AUTO[i],
-        autoOn: settings[i] ? settings[i].autoOn : false,
-        skin: this.skinFor(i),
-      }));
+      for (let i = 0; i < C.BALLOONS; i++) {
+        this.slots.push(new BF.BetSlot(i));
+        this.views.push(new BF.BalloonView(i, $('#balloons'), {
+          bet: settings[i] ? settings[i].bet : C.DEFAULT_BETS[i],
+          auto: settings[i] ? settings[i].auto : C.DEFAULT_AUTO[i],
+          autoOn: settings[i] ? settings[i].autoOn : false,
+          skin: this.skinFor(i),
+        }));
+      }
 
       this.feed = new BF.LiveFeed($('#feed-list'), $('#online-count'), C.FEED_MAX_ITEMS);
       this.feed.on('entry', (e) => this.trackTopWin(e));
-      new BF.LiveFeedSimulator(this.feed).start();
+      this.crowd = new BF.CrowdSimulator(this.feed, this.engine);
 
+      this.bindEngine();
       this.bindSlots();
       this.bindUI();
       this.bindProgress();
@@ -48,11 +54,14 @@
       this.renderStreak();
       this.renderSoundBtn();
       $('#balance-value').textContent = money(this.wallet.balance);
+      $('#rtp-value').textContent = `${Math.round(C.RTP * 100)}%`;
+      if (refund) this.toast(`${money(refund)} from unlocked bets refunded`, 'info');
 
+      this.engine.start(performance.now());
       this.frame = this.frame.bind(this);
       requestAnimationFrame(this.frame);
       // Keeps rounds resolving (auto cash-outs, pops) while the tab is in the background.
-      setInterval(() => this.slots.forEach((s) => s.update(performance.now())), 250);
+      setInterval(() => this.tick(performance.now()), 250);
       // New day → new missions and a claimable bonus, even if the tab stays open.
       setInterval(() => { if (this.rewards.rollover()) this.save(); this.renderRewards(); }, 30000);
     }
@@ -62,76 +71,118 @@
       return this.progress.isUnlocked(skin) ? skin : BF.SKINS[i];
     }
 
-    /* ================= gameplay ================= */
+    balloon(i) { return this.engine.balloons[i] || null; }
+
+    /* ================= round flow ================= */
+
+    bindEngine() {
+      const e = this.engine;
+
+      e.on('betting', () => {
+        this.slots.forEach((slot, i) => {
+          slot.clear();
+          this.views[i].onBetting();
+          if (slot.queued) {
+            const { amount, auto } = slot.queued;
+            slot.queued = null;
+            this.placeBet(i, amount, auto, true);
+          }
+        });
+      });
+
+      e.on('locked', ({ balloons }) => {
+        this.slots.forEach((slot) => slot.activate());
+        balloons.forEach((b, i) => {
+          this.views[i].onLocked(b, this.slots[i].isActive);
+          if (b.golden) {
+            BF.sound.play('golden');
+            BF.sound.vibrate([20, 40, 20, 40, 20]);
+            const c = this.views[i].center;
+            for (let k = 0; k < 12; k++) this.particles.glitter(c.x, c.y, c.radius * 1.4);
+            this.toast(`★ Balloon ${i + 1} is GOLDEN — ${C.GOLDEN_SPEED}× speed, pays ${C.GOLDEN_CAP}x if it survives!`, 'gold');
+          }
+        });
+        this.save();
+      });
+
+      e.on('launch', () => {
+        this.views.forEach((v) => v.onLaunch());
+        this.slots.forEach((slot, i) => { if (slot.isActive) BF.sound.startInflate(i); });
+        BF.sound.play('start');
+      });
+
+      e.on('balloonEnd', (b) => {
+        const slot = this.slots[b.index];
+        const hadBet = slot.status !== 'none';
+        slot.resolve(b, b.endTimeMs); // settles auto cash-out / pop / cap for this bet
+        const view = this.views[b.index];
+        const c = view.center;
+        if (b.state === 'popped') {
+          BF.sound.play('pop');
+          if (hadBet) BF.sound.vibrate([60, 40, 90]);
+          this.particles.pop(c.x, c.y, view.colors(b.golden), clamp(c.radius / 90, 0.6, 1.4));
+        } else {
+          this.particles.cashout(c.x, c.y, true);
+          this.particles.confetti(c.x, c.y);
+        }
+        const res = hadBet ? { won: slot.status === 'cashed', payout: slot.result && slot.result.payout, lost: slot.amount } : null;
+        view.onBalloonEnd(b, res);
+      });
+    }
 
     bindSlots() {
       this.slots.forEach((slot, i) => {
         const view = this.views[i];
 
-        slot.on('start', ({ golden }) => {
-          view.onStart(golden);
-          BF.sound.play('start');
-          BF.sound.startInflate(slot.id);
-          if (golden) {
-            BF.sound.play('golden');
-            BF.sound.vibrate([20, 40, 20, 40, 20]);
-            this.toast(`★ Balloon ${i + 1} is a Golden Balloon — ${C.GOLDEN_SPEED}× speed, pays up to ${C.GOLDEN_CAP}x!`, 'gold');
-          }
-        });
-
         slot.on('cashout', (res) => {
-          BF.sound.stopInflate(slot.id);
+          const b = this.balloon(i);
+          BF.sound.stopInflate(i);
           BF.sound.play('cashout');
           BF.sound.vibrate(30);
           const c = view.center;
-          view.onCashout(res);
-          this.particles.cashout(c.x, c.y, slot.golden);
+          this.particles.cashout(c.x, c.y, b && b.golden);
           if (res.multiplier >= 10) this.particles.confetti(c.x, c.y);
+          view.onCashout(res);
           this.wallet.credit(res.payout);
           this.streak += 1;
           this.bestStreak = Math.max(this.bestStreak, this.streak);
           this.renderStreak(true);
-          this.finishRound(slot, res);
+          this.finishBet(slot, res, b && b.golden);
         });
 
-        slot.on('pop', (res) => {
-          BF.sound.stopInflate(slot.id);
-          BF.sound.play('pop');
-          BF.sound.vibrate([60, 40, 90]);
-          const c = view.center;
-          this.particles.pop(c.x, c.y, view.colors, clamp(c.radius / 90, 0.6, 1.4));
-          view.onPop(res);
+        slot.on('lost', (res) => {
+          const b = this.balloon(i);
+          BF.sound.stopInflate(i);
           this.streak = 0;
           this.renderStreak();
-          this.finishRound(slot, res);
+          this.finishBet(slot, res, b && b.golden);
         });
-
-        slot.on('reset', () => view.onReset());
       });
     }
 
-    finishRound(slot, res) {
+    finishBet(slot, res, golden) {
       const gained = this.progress.awardRound({
-        bet: slot.bet, won: res.won, multiplier: res.multiplier, streak: this.streak, golden: slot.golden,
-      });
-      this.feed.push({
-        name: 'You', you: true, won: res.won, golden: slot.golden,
-        multiplier: res.multiplier, amount: res.won ? res.payout : slot.bet,
+        bet: slot.amount, won: res.won, multiplier: res.multiplier, streak: this.streak, golden,
       });
       this.rewards.recordRound({
-        won: res.won, multiplier: res.multiplier, payout: res.payout, bet: slot.bet,
-        auto: !!res.auto, golden: slot.golden, streak: this.streak,
+        won: res.won, multiplier: res.multiplier, payout: res.payout, bet: slot.amount,
+        auto: !!res.auto, golden, streak: this.streak,
       });
-      this.floatXp(slot.id, gained);
+      this.feed.push({
+        name: 'You', you: true, won: res.won, golden, balloon: slot.index,
+        multiplier: res.multiplier, amount: res.won ? res.payout : slot.amount,
+      });
+      this.floatXp(slot.index, gained);
       this.save();
-      setTimeout(() => slot.reset(), C.RESULT_HOLD_MS);
     }
 
-    /** Validates a slot's inputs; returns {bet, auto} or null (and flags the field). */
+    /* ================= player actions ================= */
+
+    /** Validates a slot's inputs; returns {amount, auto} or null (and flags the field). */
     readInputs(i) {
       const view = this.views[i];
-      const bet = round2(view.bet);
-      if (!(bet >= C.MIN_BET) || bet > C.MAX_BET) {
+      const amount = round2(view.bet);
+      if (!(amount >= C.MIN_BET) || amount > C.MAX_BET) {
         view.flagInvalid('bet');
         this.toast(`Bet must be between ${money(C.MIN_BET)} and ${money(C.MAX_BET)}`, 'error');
         return null;
@@ -142,49 +193,126 @@
         this.toast('Auto cash out must be at least 1.01x', 'error');
         return null;
       }
-      return { bet, auto };
+      return { amount, auto };
     }
 
-    canStart(i) { return this.slots[i].isIdle && !this.pending.has(i); }
-
-    async startSlots(indices) {
-      indices = indices.filter((i) => this.canStart(i));
-      if (!indices.length) return;
-      const inputs = indices.map((i) => this.readInputs(i));
-      if (inputs.some((x) => !x)) return;
-      const total = inputs.reduce((sum, x) => sum + x.bet, 0);
-      if (!this.wallet.canAfford(total)) {
-        indices.forEach((i) => this.views[i].flagInvalid('bet'));
-        this.toast('Insufficient balance for that bet', 'error');
-        return;
+    /** Places a bet during the betting window (debits the wallet). */
+    placeBet(i, amount, auto, fromQueue = false) {
+      const slot = this.slots[i];
+      if (this.engine.phase !== 'betting' || slot.status !== 'none') return false;
+      if (!this.wallet.canAfford(amount)) {
+        this.views[i].flagInvalid('bet');
+        this.toast(fromQueue ? `Next-round bet on Balloon ${i + 1} skipped: insufficient balance` : 'Insufficient balance for that bet', 'error');
+        return false;
       }
-
-      BF.sound.unlock();
-      // Random order so neither slot is favoured when the golden slot comes up.
-      const order = indices.map((i, k) => k).sort(() => Math.random() - 0.5);
-      const rounds = [];
-      indices.forEach((i) => this.pending.add(i));
-      inputs.forEach((x) => this.wallet.debit(x.bet));
-      for (const k of order) rounds[k] = await this.provider.createRound();
-      const now = performance.now();
-      indices.forEach((i, k) => {
-        this.pending.delete(i);
-        this.slots[i].start(rounds[k], inputs[k].bet, inputs[k].auto, now);
-      });
+      this.wallet.debit(amount);
+      slot.place(amount, auto);
+      BF.sound.play('click');
       this.save();
+      return true;
     }
 
-    cashOut(i) { this.slots[i].cashOut(performance.now()); }
+    cancelBet(i) {
+      const slot = this.slots[i];
+      const amount = slot.amount;
+      if (slot.cancel()) {
+        this.wallet.credit(amount);
+        BF.sound.play('click');
+        this.save();
+      }
+    }
 
+    cashOut(i) {
+      this.tick(performance.now()); // a pop that already happened wins the race
+      this.slots[i].cashOut(this.balloon(i));
+    }
+
+    /** The per-balloon button. */
     slotAction(i) {
-      if (this.slots[i].isFilling) this.cashOut(i);
-      else if (this.canStart(i)) this.startSlots([i]);
+      BF.sound.unlock();
+      const slot = this.slots[i];
+      const phase = this.engine.phase;
+      if (slot.isActive && phase === 'flying') return this.cashOut(i);
+      if (phase === 'betting') {
+        if (slot.status === 'placed') return this.cancelBet(i);
+        const input = this.readInputs(i);
+        if (input) this.placeBet(i, input.amount, input.auto);
+        return undefined;
+      }
+      if (slot.isActive) return undefined; // locked, waiting for launch
+      // Round in progress: queue (or un-queue) a bet for the next round.
+      if (slot.queued) {
+        slot.queued = null;
+      } else {
+        const input = this.readInputs(i);
+        if (input) slot.queued = input;
+      }
+      BF.sound.play('click');
+      return undefined;
     }
 
+    /** The big button: bet on both / cancel / cash out all / queue both. */
     bigAction() {
-      const filling = this.slots.filter((s) => s.isFilling);
-      if (filling.length) filling.forEach((s) => this.cashOut(s.id));
-      else if (this.slots.every((s, i) => this.canStart(i))) this.startSlots([0, 1]);
+      BF.sound.unlock();
+      const mode = this.bigState().mode;
+      const idx = this.slots.map((s, i) => i);
+      if (mode === 'cash') idx.forEach((i) => { if (this.slots[i].isActive) this.cashOut(i); });
+      else if (mode === 'cancel') idx.forEach((i) => this.cancelBet(i));
+      else if (mode === 'bet') {
+        const open = idx.filter((i) => this.slots[i].status === 'none');
+        const inputs = open.map((i) => this.readInputs(i));
+        if (inputs.some((x) => !x)) return;
+        const total = inputs.reduce((sum, x) => sum + x.amount, 0);
+        if (!this.wallet.canAfford(total)) {
+          open.forEach((i) => this.views[i].flagInvalid('bet'));
+          this.toast('Insufficient balance for those bets', 'error');
+          return;
+        }
+        open.forEach((i, k) => this.placeBet(i, inputs[k].amount, inputs[k].auto));
+      } else if (mode === 'queue') {
+        idx.forEach((i) => { if (!this.slots[i].queued && !this.slots[i].isActive) { const x = this.readInputs(i); if (x) this.slots[i].queued = x; } });
+      } else if (mode === 'unqueue') {
+        this.slots.forEach((s) => { s.queued = null; });
+      }
+    }
+
+    /* ================= derived UI state ================= */
+
+    actionState(i) {
+      const slot = this.slots[i];
+      const phase = this.engine.phase;
+      const b = this.balloon(i);
+      const view = this.views[i];
+      if (phase === 'betting') {
+        return slot.status === 'placed'
+          ? { mode: 'cancel', label: 'Cancel Bet', sub: `${money(slot.amount)} placed` }
+          : { mode: 'start', label: 'Place Bet', sub: money(view.bet) };
+      }
+      if (slot.isActive && phase === 'flying' && b && b.isFilling) {
+        return { mode: 'cash', label: 'Cash Out', sub: money(slot.potentialWin(b)) };
+      }
+      if (slot.isActive) return { mode: 'locked', label: 'Bet Locked', sub: money(slot.amount), disabled: true };
+      if (slot.queued) return { mode: 'queued', label: 'Cancel Next Bet', sub: `${money(slot.queued.amount)} next round` };
+      return { mode: 'next', label: 'Bet Next Round', sub: money(view.bet) };
+    }
+
+    bigState() {
+      const phase = this.engine.phase;
+      const active = this.slots.filter((s, i) => s.isActive && phase === 'flying' && this.balloon(i) && this.balloon(i).isFilling);
+      if (active.length) {
+        const total = active.reduce((sum, s) => sum + s.potentialWin(this.balloon(s.index)), 0);
+        return { mode: 'cash', label: active.length > 1 ? 'Cash Out All' : `Cash Out Balloon ${active[0].index + 1}`, sub: money(total) };
+      }
+      const betTotal = () => money(this.views.reduce((sum, v) => sum + (v.bet || 0), 0));
+      if (phase === 'betting') {
+        const open = this.slots.filter((s) => s.status === 'none');
+        if (!open.length) return { mode: 'cancel', label: 'Cancel Bets', sub: `${money(this.slots.reduce((s, x) => s + x.amount, 0))} placed` };
+        const label = open.length === this.slots.length ? 'Bet on Both' : `Bet Balloon ${open[0].index + 1} Too`;
+        return { mode: 'bet', label, sub: `Total ${money(open.reduce((sum, s) => sum + (this.views[s.index].bet || 0), 0))}` };
+      }
+      if (phase === 'reveal') return { mode: 'wait', label: 'Bets Locked', sub: 'Get ready…', disabled: true };
+      if (this.slots.some((s) => s.queued)) return { mode: 'unqueue', label: 'Cancel Next Bets', sub: 'Queued for next round' };
+      return { mode: 'queue', label: 'Bet Both Next Round', sub: `Total ${betTotal()}` };
     }
 
     /* ================= UI wiring ================= */
@@ -223,8 +351,11 @@
 
       $('#sound-btn').addEventListener('click', () => {
         BF.sound.setEnabled(!BF.sound.enabled);
-        if (BF.sound.enabled) { BF.sound.unlock(); BF.sound.play('click'); }
-        this.slots.forEach((s) => { if (s.isFilling && BF.sound.enabled) BF.sound.startInflate(s.id); });
+        if (BF.sound.enabled) {
+          BF.sound.unlock();
+          BF.sound.play('click');
+          this.slots.forEach((s, i) => { if (s.isActive && this.engine.phase === 'flying') BF.sound.startInflate(i); });
+        }
         this.renderSoundBtn();
         this.save();
       });
@@ -249,8 +380,7 @@
           if (e.target.tagName === 'BUTTON') return; // let the focused button handle it
           e.preventDefault();
           this.bigAction();
-        }
-        else if (e.key === '1') this.slotAction(0);
+        } else if (e.key === '1') this.slotAction(0);
         else if (e.key === '2') this.slotAction(1);
       });
 
@@ -320,59 +450,80 @@
 
     /* ================= render ================= */
 
+    /** Advances game logic (engine + auto cash-outs). Safe to call often. */
+    tick(now) {
+      this.engine.update(now);
+      if (this.engine.phase === 'flying') {
+        const elapsed = now - this.engine.startAt;
+        this.slots.forEach((slot, i) => slot.resolve(this.balloon(i), elapsed));
+      }
+      this.crowd.update();
+    }
+
     frame(now) {
+      this.tick(now);
+      const phase = this.engine.phase;
+      const remaining = this.engine.remaining(now);
       this.slots.forEach((slot, i) => {
-        slot.update(now);
-        this.views[i].render(now, this.particles);
-        if (slot.isFilling) BF.sound.updateInflate(slot.id, slot.multiplier);
+        const b = this.balloon(i);
+        this.views[i].render(now, {
+          phase, remaining, balloon: b,
+          crowd: this.crowd.stats(i, now),
+          action: this.actionState(i),
+          inputsLocked: slot.status !== 'none' || !!slot.queued,
+        }, this.particles);
+        if (slot.isActive && b && b.isFilling) BF.sound.updateInflate(i, b.multiplier);
       });
       this.particles.step(now);
+      this.renderRoundBar(now, phase, remaining);
       this.renderBalance();
       this.renderBigButton();
       requestAnimationFrame(this.frame);
     }
 
+    renderRoundBar(now, phase, remaining) {
+      const labels = {
+        betting: `Place your bets · ${(remaining / 1000).toFixed(1)}s`,
+        reveal: 'Bets locked',
+        flying: 'Balloons filling — cash out before they pop!',
+        ended: `Round over · next in ${Math.ceil(remaining / 1000)}s`,
+      };
+      let pct = 0;
+      if (phase === 'betting') pct = remaining / C.BETTING_MS;
+      else if (phase === 'reveal') pct = 0;
+      else if (phase === 'ended') pct = 1 - remaining / C.ROUND_END_MS;
+      else pct = 1;
+      const setText = (id, text) => { const el = $(id); if (el.textContent !== text) el.textContent = text; };
+      setText('#round-no', `Round #${this.engine.roundNo}`);
+      setText('#round-phase', labels[phase] || '');
+      $('#round-bar').dataset.phase = phase;
+      $('#round-progress').style.transform = `scaleX(${clamp(pct, 0, 1).toFixed(4)})`;
+    }
+
     renderBalance() {
       const target = this.wallet.balance;
       if (Math.abs(this.displayBalance - target) < 0.005) {
-        if (this.displayBalance === target) return;
-        this.displayBalance = target;
+        if (this.displayBalance !== target) {
+          this.displayBalance = target;
+          $('#balance-value').textContent = money(target);
+        }
       } else {
         this.displayBalance += (target - this.displayBalance) * 0.18;
+        $('#balance-value').textContent = money(this.displayBalance);
       }
-      $('#balance-value').textContent = money(this.displayBalance);
-
-      const busy = this.slots.some((s) => !s.isIdle) || this.pending.size > 0;
+      const busy = this.slots.some((s) => s.status === 'placed' || s.isActive);
       $('#refill-btn').classList.toggle('hidden', busy || target >= C.MIN_BET);
     }
 
     renderBigButton() {
       const btn = $('#big-btn');
-      const filling = this.slots.filter((s) => s.isFilling);
-      let label;
-      let sub;
-      let mode;
-      if (filling.length) {
-        mode = 'cash';
-        label = filling.length === 2 ? 'Cash Out Both' : `Cash Out Balloon ${filling[0].id + 1}`;
-        sub = money(filling.reduce((sum, s) => sum + s.potentialWin, 0));
-      } else if (this.slots.every((s, i) => this.canStart(i))) {
-        mode = 'start';
-        label = 'Start Both';
-        sub = `Total bet ${money(this.views.reduce((sum, v) => sum + (v.bet || 0), 0))}`;
-      } else {
-        mode = 'wait';
-        label = 'Refilling…';
-        sub = 'Get ready';
-      }
-      if (btn.dataset.mode !== mode) {
-        btn.dataset.mode = mode;
-        btn.disabled = mode === 'wait';
-      }
+      const st = this.bigState();
+      if (btn.dataset.mode !== st.mode) btn.dataset.mode = st.mode;
+      btn.disabled = !!st.disabled;
       const l = $('#big-label');
       const s = $('#big-sub');
-      if (l.textContent !== label) l.textContent = label;
-      if (s.textContent !== sub) s.textContent = sub;
+      if (l.textContent !== st.label) l.textContent = st.label;
+      if (s.textContent !== st.sub) s.textContent = st.sub;
     }
 
     renderStreak(bump) {
@@ -412,9 +563,8 @@
     renderRewards() {
       const r = this.rewards;
       const streak = r.canClaimBonus ? r.nextBonusStreak : r.bonusStreak;
-      const bonusMult = this.progress.bonusMultiplier;
       $('#bonus-streak').textContent = `Day ${streak} streak`;
-      $('#bonus-amount').textContent = money(r.bonusAmount() * bonusMult);
+      $('#bonus-amount').textContent = money(r.bonusAmount() * this.progress.bonusMultiplier);
       $('#bonus-days').innerHTML = Array.from({ length: 9 }, (_, k) => {
         const reached = k + 1 < streak || (k + 1 === streak && !r.canClaimBonus);
         const current = k + 1 === Math.min(streak, 9) && r.canClaimBonus;
@@ -441,7 +591,7 @@
 
       const s = r.stats;
       const rows = [
-        ['Balloons filled', s.rounds.toLocaleString('en-US')],
+        ['Bets placed', s.rounds.toLocaleString('en-US')],
         ['Win rate', s.rounds ? `${Math.round((s.wins / s.rounds) * 100)}%` : '—'],
         ['Best multiplier', s.bestMultiplier ? mult(s.bestMultiplier) : '—'],
         ['Biggest win', s.biggestWin ? money(s.biggestWin) : '—'],
@@ -468,12 +618,12 @@
         const card = document.createElement('div');
         card.className = `skin-card${unlocked ? '' : ' locked'}${skin.fx ? ' fx-' + skin.fx : ''}`;
         BF.applySkinVars(card, skin);
-        const eq = [0, 1].map((i) => this.equipped[i] === skin.id);
+        const eq = this.slots.map((s, i) => this.equipped[i] === skin.id);
         card.innerHTML = `
           <div class="skin-preview">${BF.balloonSVG('skin-' + skin.id)}</div>
           <div class="skin-name">${skin.name}</div>
           ${unlocked
-            ? `<div class="skin-equip">${[0, 1].map((i) => `<button type="button" class="${eq[i] ? 'on' : ''}" data-slot="${i}">B${i + 1}</button>`).join('')}</div>`
+            ? `<div class="skin-equip">${eq.map((on, i) => `<button type="button" class="${on ? 'on' : ''}" data-slot="${i}">B${i + 1}</button>`).join('')}</div>`
             : `<div class="skin-lock"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10zm2 0h6V7a3 3 0 0 0-6 0z" fill="currentColor"/></svg>Level ${skin.level}</div>`}`;
         card.querySelectorAll('button[data-slot]').forEach((b) => b.addEventListener('click', () => {
           const i = Number(b.dataset.slot);
@@ -493,8 +643,8 @@
       b.setAttribute('aria-pressed', String(BF.sound.enabled));
     }
 
-    floatXp(slotId, xp) {
-      const stage = this.views[slotId].r.stage;
+    floatXp(i, xp) {
+      const stage = this.views[i].r.stage;
       const el = document.createElement('div');
       el.className = 'xp-float';
       el.textContent = `+${xp} XP`;
@@ -518,12 +668,12 @@
       this.saveTimer = setTimeout(() => {
         BF.storage.save({
           balance: this.wallet.balance,
+          openBets: this.slots.reduce((sum, s) => sum + (s.status === 'placed' ? s.amount : 0), 0),
           progress: this.progress.toJSON(),
+          rewards: this.rewards.toJSON(),
           streak: this.streak,
           bestStreak: this.bestStreak,
           equipped: this.equipped,
-          golden: this.provider.state,
-          rewards: this.rewards.toJSON(),
           sound: BF.sound.enabled,
           settings: this.views.map((v) => v.settings),
         });

@@ -183,16 +183,18 @@ kbd {
   --b-hi: #fff8d6; --b-main: #ffc41f; --b-deep: #8a5a00; --b-glow: rgba(255, 200, 40, .75);
 }
 
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 6px 8px; min-height: 24px; flex-wrap: wrap; }
+.crowd { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
 .slot-label { flex: none; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); white-space: nowrap; }
 .slot-label b { color: var(--text); }
-.history { min-width: 0; display: flex; gap: 4px; overflow: hidden; justify-content: flex-end; flex-wrap: nowrap; }
+.history { flex: 1 0 100%; min-width: 0; min-height: 20px; display: flex; gap: 4px; overflow: hidden; flex-wrap: nowrap; }
 .hchip {
   font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap;
   animation: chipIn 0.3s ease;
 }
 .hchip.win { color: var(--green); background: rgba(45, 252, 143, 0.12); }
 .hchip.lose { color: var(--red); background: rgba(255, 61, 110, 0.12); }
+.hchip.gold { color: #2a1a00; background: linear-gradient(90deg, #ffe27a, #ffb800); }
 
 .stage {
   position: relative;
@@ -236,7 +238,52 @@ kbd {
 .mult.tier-4 { color: #ff7ad1; text-shadow: 0 0 28px rgba(255, 122, 209, .7); }
 .is-golden .mult { color: #ffe27a; text-shadow: 0 0 30px rgba(255, 201, 51, .8); }
 .is-popped .mult { color: var(--red); }
-.is-cashed .mult { color: var(--green); }
+.is-maxed .mult { color: #ffe27a; }
+.is-waiting .mult { opacity: 0.35; }
+.balloon-card.is-cashed { border-color: rgba(45, 252, 143, 0.5); }
+.balloon-card.is-locked:not(.is-golden) { border-color: rgba(138, 91, 255, 0.55); }
+
+.phase-pill {
+  position: absolute; top: 76px; left: 50%; z-index: 4; transform: translateX(-50%);
+  padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  background: rgba(8, 5, 18, 0.7); border: 1px solid var(--border);
+  opacity: 0; transition: opacity 0.25s; pointer-events: none;
+}
+.phase-pill.show { opacity: 1; }
+.phase-pill.betting { color: #c9b6ff; border-color: rgba(138, 91, 255, 0.5); }
+.phase-pill.reveal { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+.is-golden .phase-pill.reveal { color: #2a1a00; background: linear-gradient(90deg, #ffe27a, #ffb800); border-color: transparent; }
+.is-golden .phase-pill { top: 104px; }
+
+.cash-badge {
+  position: absolute; left: 10px; top: 76px; z-index: 5;
+  display: flex; flex-direction: column; padding: 6px 10px; border-radius: 12px;
+  background: rgba(8, 30, 18, 0.85); border: 1px solid rgba(45, 252, 143, 0.55);
+  box-shadow: 0 0 20px rgba(45, 252, 143, 0.3);
+  opacity: 0; transform: translateY(-6px) scale(0.9); pointer-events: none;
+  transition: opacity 0.25s, transform 0.3s cubic-bezier(.2,1.5,.4,1);
+}
+.cash-badge.show { opacity: 1; transform: none; }
+/* Once the balloon has finished, the result box says it all. */
+.balloon-card.is-popped .cash-badge, .balloon-card.is-maxed .cash-badge,
+.balloon-card.is-popped .golden-banner, .balloon-card.is-maxed .golden-banner { opacity: 0; }
+.cash-badge b { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #b6ffd9; }
+.cash-badge span { font-size: 16px; font-weight: 900; color: var(--green); }
+
+/* Round status bar */
+.round-bar {
+  display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center;
+  padding: 10px 14px; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+.round-no { font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.round-phase { font-size: 14px; font-weight: 700; text-align: right; }
+.round-progress { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(0,0,0,.4); overflow: hidden; }
+.round-progress-fill { height: 100%; width: 100%; transform-origin: left; border-radius: 3px; background: linear-gradient(90deg, var(--violet), var(--pink)); }
+.round-bar[data-phase='betting'] { border-color: rgba(138, 91, 255, 0.45); }
+.round-bar[data-phase='flying'] .round-progress-fill { background: linear-gradient(90deg, #62ffb0, var(--green-deep)); animation: pulse 1s infinite; }
+.round-bar[data-phase='ended'] .round-progress-fill { background: rgba(255,255,255,.25); }
 
 .golden-banner {
   position: absolute; top: 70px; left: 50%; z-index: 4;
@@ -261,7 +308,9 @@ kbd {
   pointer-events: none; text-align: center; white-space: nowrap;
 }
 .result b { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; }
-.result span { font-size: 24px; font-weight: 900; }
+.result span { font-size: 20px; font-weight: 900; }
+.result span.win { color: var(--green) !important; }
+.result span.lose { color: var(--red); }
 .result.show { animation: resultIn 0.45s cubic-bezier(.2,1.5,.4,1) forwards; }
 .result.win { border-color: rgba(45, 252, 143, 0.5); box-shadow: 0 0 30px rgba(45, 252, 143, .35); }
 .result.win span { color: var(--green); }
@@ -408,7 +457,12 @@ kbd {
   animation: cashGlow 1s ease-in-out infinite alternate;
 }
 .btn-action[data-mode='cash'] .action-sub { font-size: 16px; font-weight: 900; opacity: 1; }
-.btn-action[data-mode='done'] { background: #221d38; color: var(--muted); }
+.btn-action[data-mode='cancel'], .btn-action[data-mode='queued'] {
+  background: #2b2545; box-shadow: inset 0 0 0 1px rgba(255, 61, 110, 0.55);
+}
+.btn-action[data-mode='cancel'] .action-label, .btn-action[data-mode='queued'] .action-label { color: #ff8aa5; }
+.btn-action[data-mode='next'] { background: linear-gradient(135deg, #3a2a7a, #5a2a78); box-shadow: inset 0 1px 0 rgba(255,255,255,.15); }
+.btn-action[data-mode='locked'] { background: #221d38; color: var(--muted); }
 .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
 
 /* ───────────── Big button ───────────── */
@@ -430,7 +484,7 @@ kbd {
 .btn-big:hover:not(:disabled) { filter: brightness(1.08); }
 .big-label { font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; }
 .big-sub { font-size: 13px; opacity: 0.85; font-weight: 600; }
-.btn-big[data-mode='start'] {
+.btn-big[data-mode='bet'], .btn-big[data-mode='queue'] {
   background: linear-gradient(135deg, #1fc8ff, var(--violet) 50%, var(--pink));
   box-shadow: 0 12px 40px rgba(138, 91, 255, 0.45), inset 0 1px 0 rgba(255,255,255,.3);
 }
@@ -442,6 +496,9 @@ kbd {
 .btn-big[data-mode='cash'] .big-sub { font-size: 16px; font-weight: 900; opacity: 1; }
 .btn-big[data-mode='wait'] { background: #221d38; color: var(--muted); }
 .btn-big[data-mode='wait']::after { display: none; }
+.btn-big[data-mode='cancel'], .btn-big[data-mode='unqueue'] { background: #2b2545; color: #ff8aa5; box-shadow: inset 0 0 0 1px rgba(255, 61, 110, 0.55); }
+.btn-big[data-mode='cancel']::after, .btn-big[data-mode='unqueue']::after { display: none; }
+.btn-big[data-mode='queue'] { filter: saturate(0.7); }
 .hint { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
 
 /* ───────────── Live feed ───────────── */
@@ -477,6 +534,10 @@ kbd {
 .feed-amount { font-weight: 800; white-space: nowrap; }
 .feed-item.win .feed-amount { color: var(--green); }
 .feed-item.lose .feed-amount { color: #ff7b98; opacity: 0.8; }
+.b-tag {
+  font-style: normal; font-size: 9px; font-weight: 800; margin-left: 5px; padding: 1px 4px; border-radius: 4px;
+  color: var(--muted); background: var(--panel-2); vertical-align: 1px;
+}
 .gold-tag {
   font-style: normal; font-size: 9px; font-weight: 900; margin-left: 5px; padding: 1px 5px; border-radius: 4px;
   color: #2a1a00; background: linear-gradient(90deg, #ffe27a, #ffb800); vertical-align: 1px;
@@ -692,7 +753,14 @@ kbd {
 
   .balloons { gap: 8px; }
   .balloon-card { padding: 8px; gap: 8px; border-radius: 14px; }
-  .history .hchip:nth-child(n+2) { display: none; }
+  .history .hchip:nth-child(n+4) { display: none; }
+  .crowd { font-size: 10px; }
+  .phase-pill { top: 50px; font-size: 10px; padding: 3px 8px; }
+  .is-golden .phase-pill { top: 72px; }
+  .cash-badge { top: 50px; left: 6px; padding: 4px 7px; }
+  .cash-badge span { font-size: 13px; }
+  .round-bar { padding: 8px 10px; }
+  .round-phase { font-size: 12px; }
   .stage { height: clamp(230px, 38vh, 300px); }
   .mult { font-size: 30px; top: 10px; }
   .golden-banner { top: 48px; font-size: 9px; padding: 3px 8px; }
@@ -705,7 +773,7 @@ kbd {
   .pump-base { width: 64px; height: 28px; }
   .result { padding: 8px 10px; }
   .result b { font-size: 11px; }
-  .result span { font-size: 18px; }
+  .result span { font-size: 14px; }
 
   .controls { grid-template-columns: 1fr; gap: 8px; }
   .input-row { height: 38px; padding-left: 8px; }

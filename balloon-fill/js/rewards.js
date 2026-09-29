@@ -34,7 +34,7 @@
    * round = { won, multiplier, payout, bet, auto, golden, streak }
    */
   const MISSION_POOL = [
-    { id: 'fill20', text: 'Fill 20 balloons', target: 20, chips: 150, xp: 60, track: (r, p) => p + 1 },
+    { id: 'fill20', text: 'Bet on 20 balloons', target: 20, chips: 150, xp: 60, track: (r, p) => p + 1 },
     { id: 'win10', text: 'Win 10 balloons', target: 10, chips: 200, xp: 80, track: (r, p) => p + (r.won ? 1 : 0) },
     { id: 'high3', text: 'Cash out at 3.00x or higher 3 times', target: 3, chips: 250, xp: 100, track: (r, p) => p + (r.won && r.multiplier >= 3 ? 1 : 0) },
     { id: 'streak4', text: 'Reach a 4-win streak', target: 4, chips: 250, xp: 100, track: (r, p) => Math.max(p, r.streak) },

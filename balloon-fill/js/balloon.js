@@ -1,106 +1,107 @@
 /**
- * BalloonSlot — pure game logic for one balloon (no DOM).
+ * BetSlot — the local player's bet on one balloon (no DOM).
  *
- * States: idle → filling → (cashed | popped) → idle
- * Events: 'start', 'cashout' {multiplier, payout, auto, capped}, 'pop' {multiplier}, 'reset'
+ * status: none → placed (betting window, cancellable) → active (locked in)
+ *         → cashed | lost → none (when the next betting window opens)
+ * A separate `queued` bet can be set while a round is running; the controller
+ * places it automatically when the next betting window opens.
  *
- * A balloon that reaches its round's maxMultiplier (the Golden Balloon cap)
- * is cashed out automatically at that multiplier.
- *
- * The multiplier is a deterministic function of elapsed time, so a paused tab
- * resolves correctly when it wakes up (auto cash-out wins if its target was
- * reached before the pop time).
+ * Events: 'placed', 'cancelled', 'activated', 'cashout' {multiplier, payout, auto, capped},
+ *         'lost' {multiplier}
  */
 (function () {
-  const C = BF.CONFIG;
   const { Emitter, floor2, round2 } = BF.util;
 
-  class BalloonSlot extends Emitter {
-    constructor(id) {
+  class BetSlot extends Emitter {
+    constructor(index) {
       super();
-      this.id = id;
-      this.reset(true);
-    }
-
-    reset(silent) {
-      this.state = 'idle';
-      this.round = null;
-      this.bet = 0;
+      this.index = index;
+      this.status = 'none';
+      this.amount = 0;
       this.autoTarget = null;
-      this.startedAt = 0;
-      this.multiplier = 1;
+      this.queued = null;
       this.result = null;
-      if (!silent) this.emit('reset');
     }
 
-    get isFilling() { return this.state === 'filling'; }
-    get isIdle() { return this.state === 'idle'; }
-    get golden() { return !!(this.round && this.round.golden); }
+    get isActive() { return this.status === 'active'; }
 
-    multiplierAt(elapsedMs) {
-      const speed = this.round ? this.round.speed : 1;
-      const cap = this.round ? this.round.maxMultiplier : C.MAX_MULTIPLIER;
-      return Math.min(cap, Math.exp(C.GROWTH_RATE * speed * Math.max(0, elapsedMs)));
-    }
-
-    /** Time (ms) at which this balloon's multiplier reaches `m`. */
-    timeFor(m) { return Math.log(m) / (C.GROWTH_RATE * this.round.speed); }
-
-    start(round, bet, autoTarget, now) {
-      if (!this.isIdle) return false;
-      this.round = round;
-      this.bet = bet;
+    place(amount, autoTarget) {
+      if (this.status !== 'none') return false;
+      this.status = 'placed';
+      this.amount = amount;
       this.autoTarget = autoTarget && autoTarget > 1 ? autoTarget : null;
-      this.startedAt = now;
-      this.multiplier = 1;
-      this.state = 'filling';
-      this.emit('start', { golden: round.golden });
+      this.result = null;
+      this.emit('placed', { amount });
       return true;
     }
 
-    /** Advances the balloon; resolves auto cash-out and pops. */
-    update(now) {
-      if (!this.isFilling) return;
-      const elapsed = now - this.startedAt;
-      const { popTimeMs } = this.round;
-
-      // Auto cash-out fires at the player's target or the round cap, whichever comes first.
-      const cap = this.round.maxMultiplier;
-      const target = this.autoTarget ? Math.min(this.autoTarget, cap) : cap;
-      const tAuto = this.timeFor(target);
-      if (elapsed >= tAuto && tAuto <= popTimeMs) {
-        this._settleCashout(target, true, target === cap);
-        return;
-      }
-      if (elapsed >= popTimeMs) {
-        this.multiplier = this.round.popMultiplier;
-        this.state = 'popped';
-        this.result = { won: false, multiplier: floor2(this.multiplier), payout: 0 };
-        this.emit('pop', this.result);
-        return;
-      }
-      this.multiplier = this.multiplierAt(elapsed);
-    }
-
-    /** Manual cash-out. Returns false if the balloon already resolved. */
-    cashOut(now) {
-      if (!this.isFilling) return false;
-      this.update(now); // make sure a pop that already happened wins the race
-      if (!this.isFilling) return false;
-      this._settleCashout(floor2(this.multiplier), false);
+    cancel() {
+      if (this.status !== 'placed') return false;
+      const { amount } = this;
+      this.status = 'none';
+      this.amount = 0;
+      this.emit('cancelled', { amount });
       return true;
     }
 
-    _settleCashout(multiplier, auto, capped = false) {
-      this.multiplier = multiplier;
-      this.state = 'cashed';
-      this.result = { won: true, multiplier, payout: round2(this.bet * multiplier), auto, capped };
+    /** Called when bets lock. */
+    activate() {
+      if (this.status !== 'placed') return false;
+      this.status = 'active';
+      this.emit('activated', { amount: this.amount });
+      return true;
+    }
+
+    /** Clears last round's result before a new betting window. */
+    clear() {
+      if (this.status === 'cashed' || this.status === 'lost') {
+        this.status = 'none';
+        this.amount = 0;
+        this.result = null;
+      }
+    }
+
+    /**
+     * Settles auto cash-out / pop / cap against the shared balloon.
+     * `elapsed` is ms since launch; safe to call repeatedly.
+     */
+    resolve(balloon, elapsed) {
+      if (!this.isActive || !balloon) return;
+      const cap = balloon.maxMultiplier;
+      if (this.autoTarget && this.autoTarget < cap) {
+        const t = balloon.timeFor(this.autoTarget);
+        if (t <= elapsed && t <= balloon.endTimeMs) {
+          this._win(this.autoTarget, true, false);
+          return;
+        }
+      }
+      if (balloon.state === 'maxed') this._win(cap, true, true);
+      else if (balloon.state === 'popped') this._lose(balloon.multiplier);
+    }
+
+    /** Manual cash-out at the balloon's current multiplier. */
+    cashOut(balloon) {
+      if (!this.isActive || !balloon || !balloon.isFilling) return false;
+      this._win(Math.max(1, floor2(balloon.multiplier)), false, false);
+      return true;
+    }
+
+    potentialWin(balloon) {
+      return balloon ? round2(this.amount * Math.max(1, floor2(balloon.multiplier))) : this.amount;
+    }
+
+    _win(multiplier, auto, capped) {
+      this.status = 'cashed';
+      this.result = { won: true, multiplier, payout: round2(this.amount * multiplier), auto, capped };
       this.emit('cashout', this.result);
     }
 
-    /** What the player would receive if they cashed out right now. */
-    get potentialWin() { return round2(this.bet * floor2(this.multiplier)); }
+    _lose(multiplier) {
+      this.status = 'lost';
+      this.result = { won: false, multiplier: floor2(multiplier), payout: 0 };
+      this.emit('lost', this.result);
+    }
   }
 
-  BF.BalloonSlot = BalloonSlot;
+  BF.BetSlot = BetSlot;
 })();

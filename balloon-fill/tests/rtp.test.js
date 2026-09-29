@@ -1,27 +1,31 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { rtp, blended } = require('../tools/simulate');
+const { rtpFor, blended } = require('../tools/simulate');
 const { loadGame } = require('./load');
 
-const C = loadGame().CONFIG;
+const BF = loadGame();
+const C = BF.CONFIG;
 const N = 300000;
 
-test('normal balloons return ~97% at any target', () => {
+test('normal balloons return k at any target', () => {
+  const k = BF.outcome.survivalConstant(C.RTP);
   for (const target of [1.5, 2, 5]) {
-    const r = rtp(false, target, N);
-    assert.ok(Math.abs(r - (1 - C.HOUSE_EDGE)) < 0.02, `target ${target}: ${r}`);
+    const r = rtpFor(false, target, N);
+    assert.ok(Math.abs(r - k) < 0.02, `target ${target}: ${r} vs ${k}`);
   }
 });
 
-test('golden balloon return is bounded by the cap: 0.97 * cap^(1 - 1/speed)', () => {
-  // P(golden reaches cap) = 0.97 / cap^(1/speed), and it pays cap.
-  const expected = (1 - C.HOUSE_EDGE) * C.GOLDEN_CAP ** (1 - 1 / C.GOLDEN_SPEED);
-  const r = rtp(true, C.GOLDEN_CAP, N);
+test('golden return held to cap is k · cap^(1 − 1/speed), and higher targets cannot beat it', () => {
+  const expected = BF.outcome.survivalConstant(C.RTP) * BF.outcome.goldenFactor();
+  const r = rtpFor(true, C.GOLDEN_CAP, N);
   assert.ok(Math.abs(r - expected) < 0.05, `golden at cap: ${r}, expected ${expected}`);
-  assert.ok(rtp(true, 1000, N) < expected + 0.05, 'targets above the cap cannot beat the cap');
+  assert.ok(rtpFor(true, 1000, N) < expected + 0.05);
 });
 
-test('flat bettors stay below 100% overall even holding goldens to the cap', () => {
-  const r = blended(N * 2, 2, C.GOLDEN_CAP);
-  assert.ok(r < 1, `blended RTP ${r}`);
+test('best possible overall return matches every operator RTP setting', () => {
+  for (const rtp of C.RTP_OPTIONS) {
+    const r = blended(N * 4, 2, C.GOLDEN_CAP, rtp);
+    assert.ok(Math.abs(r - rtp) < 0.012, `setting ${rtp}: simulated ${r}`);
+    assert.ok(r < 1, 'house always keeps an edge');
+  }
 });
