@@ -44,9 +44,9 @@ window.BF = window.BF || {};
 
     // Shared round timeline.
     BALLOONS: 2,
-    BETTING_MS: 10000, // bets open
-    REVEAL_MS: 1500, // bets locked, golden revealed, balloons about to fill
-    ROUND_END_MS: 3500, // results on screen before the next betting window
+    BETTING_MS: 6000, // bets open
+    REVEAL_MS: 1000, // bets locked, golden revealed, balloons about to fill
+    ROUND_END_MS: 2000, // results on screen before the next betting window
 
     FEED_MAX_ITEMS: 40,
     STORAGE_KEY: 'balloonfill.v2',

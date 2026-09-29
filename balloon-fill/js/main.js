@@ -470,7 +470,8 @@
           phase, remaining, balloon: b,
           crowd: this.crowd.stats(i, now),
           action: this.actionState(i),
-          inputsLocked: slot.status !== 'none' || !!slot.queued,
+          // Editable again as soon as this round's bet is settled, so the next bet can be set up early.
+          inputsLocked: slot.status === 'placed' || slot.isActive || !!slot.queued,
         }, this.particles);
         if (slot.isActive && b && b.isFilling) BF.sound.updateInflate(i, b.multiplier);
       });

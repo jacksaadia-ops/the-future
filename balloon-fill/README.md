@@ -7,10 +7,10 @@ A dual-balloon multiplier casino game (play money). Pump air into two balloons a
 ## How a round works (shared, like Aviator)
 Every player watches the same two balloons.
 
-1. **Betting window (10 s)** — place a bet on Balloon 1, Balloon 2, or both (each with its own amount and optional auto cash-out). Bets can be cancelled until the window closes.
-2. **Bets lock (1.5 s)** — no more changes. Only now is it revealed whether a balloon is **golden**.
+1. **Betting window (6 s)** — place a bet on Balloon 1, Balloon 2, or both (each with its own amount and optional auto cash-out). Bets can be cancelled until the window closes.
+2. **Bets lock (1 s)** — no more changes. Only now is it revealed whether a balloon is **golden**.
 3. **Filling** — both balloons inflate from 1.00x at the same instant; each pops at its own random moment. Cash out any time before yours pops (or let auto cash-out do it).
-4. **Round over (3.5 s)** — results, then the next betting window opens.
+4. **Round over (2 s)** — results, then the next betting window opens.
 
 While a round is running you can queue a bet for the next round ("Bet Next Round"); it is placed automatically when betting opens.
 
