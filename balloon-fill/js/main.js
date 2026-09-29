@@ -20,6 +20,7 @@
       this.bestStreak = saved.bestStreak || 0;
       this.equipped = saved.equipped || ['neon-pink', 'electric-blue'];
       this.topWins = [];
+      this.autoBets = []; // rounds of auto bet left per balloon (0 = off); never persisted
       this.displayBalance = this.wallet.balance;
 
       BF.sound.setEnabled(saved.sound !== false);
@@ -88,6 +89,7 @@
             slot.queued = null;
             this.placeBet(i, amount, auto, true);
           }
+          if (slot.status === 'none' && this.autoBets[i] > 0) this.autoPlace(i);
         });
       });
 
@@ -214,9 +216,41 @@
       return true;
     }
 
+    /* ---------- auto bet ---------- */
+
+    /** Places this round's automatic bet for balloon i with its current inputs. */
+    autoPlace(i) {
+      const input = this.readInputs(i);
+      if (!input) { this.stopAutoBet(i, `Auto bet on Balloon ${i + 1} stopped: check the bet settings`); return; }
+      if (!this.placeBet(i, input.amount, input.auto, true)) {
+        this.stopAutoBet(i, `Auto bet on Balloon ${i + 1} stopped: not enough balance`);
+        return;
+      }
+      this.autoBets[i] -= 1;
+      if (this.autoBets[i] === 0) this.stopAutoBet(i, `Auto bet on Balloon ${i + 1} finished`);
+    }
+
+    startAutoBet(i) {
+      const view = this.views[i];
+      const rounds = clamp(Math.floor(parseFloat(view.r.autoBetRounds.value) || 0), 1, C.AUTO_BET_MAX_ROUNDS);
+      view.r.autoBetRounds.value = rounds;
+      if (!this.readInputs(i)) { view.r.autoBetOn.checked = false; return; }
+      this.autoBets[i] = rounds;
+      BF.sound.play('click');
+      // Betting is open and this balloon has no bet yet: the first auto bet goes in now.
+      if (this.engine.phase === 'betting' && this.slots[i].status === 'none') this.autoPlace(i);
+    }
+
+    stopAutoBet(i, message) {
+      this.autoBets[i] = 0;
+      this.views[i].r.autoBetOn.checked = false;
+      if (message) this.toast(message, 'info');
+    }
+
     cancelBet(i) {
       const slot = this.slots[i];
       const amount = slot.amount;
+      if (this.autoBets[i] > 0) this.stopAutoBet(i, `Auto bet on Balloon ${i + 1} stopped`);
       if (slot.cancel()) {
         this.wallet.credit(amount);
         BF.sound.play('click');
@@ -352,6 +386,14 @@
           this.save();
         });
         view.r.autoOn.addEventListener('change', () => this.save());
+
+        this.autoBets[i] = 0;
+        if (!C.AUTO_BET) view.r.autoBetRow.hidden = true; // operator switched autoplay off
+        view.r.autoBetRounds.max = C.AUTO_BET_MAX_ROUNDS;
+        view.r.autoBetOn.addEventListener('change', () => {
+          if (view.r.autoBetOn.checked) this.startAutoBet(i);
+          else this.stopAutoBet(i);
+        });
         ['bet', 'auto'].forEach((k) => view.r[k].addEventListener('animationend', () => view.r[k].classList.remove('invalid')));
       });
 
@@ -573,6 +615,7 @@
       this.renderBalance();
       this.renderBigButton();
       this.renderSoundState();
+      this.renderAutoBets();
       requestAnimationFrame(this.frame);
     }
 
@@ -729,6 +772,16 @@
           this.save();
         }));
         grid.appendChild(card);
+      });
+    }
+
+    renderAutoBets() {
+      this.views.forEach((v, i) => {
+        const left = this.autoBets[i];
+        const text = left > 0 ? `${left} left` : '';
+        if (v.r.autoBetLeft.textContent !== text) v.r.autoBetLeft.textContent = text;
+        v.r.autoBetRow.classList.toggle('on', left > 0);
+        v.r.autoBetRounds.disabled = left > 0;
       });
     }
 

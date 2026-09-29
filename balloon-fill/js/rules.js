@@ -31,10 +31,11 @@
       <ol>
         <li><b>Place your bets.</b> Each round starts with a ${C.BETTING_MS / 1000}-second betting window. Bet on Balloon 1, Balloon 2, or both. Each balloon has its own bet and its own auto cash-out. You can cancel a bet until the window closes.</li>
         <li><b>Bets lock.</b> When the window closes, bets can no longer be placed, changed or cancelled. Any Golden Balloon is revealed at this moment.</li>
-        <li><b>The balloons fill.</b> Both balloons start at 1.00x at the same instant and the multiplier rises as they inflate. Each balloon pops at its own random moment.</li>
+        <li><b>The balloons fill.</b> Both balloons start at 1.00x at the same instant and the multiplier rises as they inflate. Each balloon pops at its own random moment. Above ${fx(C.WARP_FROM)} the multiplier climbs ${C.WARP_SPEEDUP}× faster; this only shortens long rounds and does not change the odds.</li>
         <li><b>Cash out before it pops.</b> Cashing out pays your bet times the multiplier at that moment. If the balloon pops first, the bet on that balloon is lost.</li>
       </ol>
       <p>While a round is running you can press <b>Bet Next Round</b> to have a bet placed automatically when the next betting window opens.</p>
+      ${C.AUTO_BET ? `<p><b>Auto bet</b> repeats a balloon's bet, with its current amount and auto cash-out, for the number of rounds you choose (up to ${C.AUTO_BET_MAX_ROUNDS}). It stops when the rounds run out, when your balance is too low, when you cancel a bet on that balloon, or when you switch it off.</p>` : ''}
 
       <h3>Cashing out</h3>
       <ul>

@@ -63,6 +63,7 @@
           <span class="balance-value" id="balance-value">$0.00</span>
         </div>
         <button class="btn-refill hidden" id="refill-btn" type="button">Free chips</button>
+        <div class="top-icons">
         <button class="icon-btn fair-btn" id="fair-btn" type="button" aria-label="Provably fair" title="Provably fair">
           <svg viewBox="0 0 24 24"><path d="M12 2 20 5.5v6c0 5-3.4 9.2-8 10.5C7.4 20.7 4 16.5 4 11.5v-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -73,6 +74,7 @@
           <svg class="ico-on" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
           <svg class="ico-off" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
+        </div>
       </div>
     </header>
 
@@ -233,6 +235,13 @@
             <input data-ref="auto" type="number" inputmode="decimal" min="1.01" step="0.01" />
             <span class="affix">x</span>
           </div>
+        </div>
+        <div class="autobet" data-ref="autoBetRow">
+          <label class="toggle"><input type="checkbox" data-ref="autoBetOn" aria-label="Auto bet" /><span></span></label>
+          <span class="autobet-label">Auto bet</span>
+          <input class="autobet-rounds" data-ref="autoBetRounds" type="number" inputmode="numeric" min="1" max="100" step="1" value="10" aria-label="Auto bet rounds" />
+          <span class="autobet-label rounds-word">rounds</span>
+          <span class="autobet-left" data-ref="autoBetLeft"></span>
         </div>
         <button type="button" class="btn-action" data-ref="action">
           <span class="action-label" data-ref="actionLabel">Place Bet</span>

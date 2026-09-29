@@ -133,6 +133,8 @@ function build() {
   L(`| RTP settings offered | ${C.RTP_OPTIONS.map(G.util.rtp).join(', ')} (default ${G.util.rtp(C.RTP)}) |`);
   L(`| Balloons per round | ${C.BALLOONS}, independent outcomes |`);
   L(`| Multiplier curve | m(t) = e^(${C.GROWTH_RATE} × speed × t), t in ms; normal reaches 2x in ${(Math.log(2) / C.GROWTH_RATE / 1000).toFixed(2)} s |`);
+  L(`| Long-flight speed-up | above ${C.WARP_FROM}x the flight clock runs ${C.WARP_SPEEDUP}× faster (same mapping for every balloon; pop points and payouts unchanged) |`);
+  L(`| Auto bet | ${C.AUTO_BET ? `on, up to ${C.AUTO_BET_MAX_ROUNDS} rounds (operator setting)` : 'off (operator setting)'} |`);
   L(`| Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |`);
   L(`| Maximum multiplier | ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (balloon pays out at this value if it survives) |`);
   L(`| Golden chance | ${pct(C.GOLDEN_CHANCE, 2)} per balloon, independent, revealed only after bets lock |`);

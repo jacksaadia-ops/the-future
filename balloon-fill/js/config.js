@@ -42,6 +42,18 @@ window.BF = window.BF || {};
 
     MAX_MULTIPLIER: 10000,
 
+    // Long flights speed up: once a normal balloon passes WARP_FROM, its clock
+    // runs WARP_SPEEDUP× faster. Pop points (and therefore odds) are unchanged;
+    // rare high-flyers just finish sooner. Golden and normal balloons share the
+    // same clock, so they still pop at exactly the same moment.
+    WARP_FROM: 5,
+    WARP_SPEEDUP: 3,
+
+    // Auto bet: repeat a balloon's bet for up to AUTO_BET_MAX_ROUNDS rounds.
+    // Operator setting — some markets restrict autoplay; set false to hide it.
+    AUTO_BET: true,
+    AUTO_BET_MAX_ROUNDS: 100,
+
     // Shared round timeline.
     BALLOONS: 2,
     BETTING_MS: 6000, // bets open

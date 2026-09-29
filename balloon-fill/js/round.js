@@ -22,9 +22,21 @@
   const C = BF.CONFIG;
   const { Emitter } = BF.util;
 
+  /*
+   * Flight clock. Outcomes are defined on a "normal-curve" clock τ where a
+   * normal balloon is at e^(r·τ). Past WARP_FROM (τ0) the on-screen clock runs
+   * WARP_SPEEDUP× faster, so long flights finish sooner. Every balloon uses the
+   * same mapping, so golden and normal balloons with the same pop point still
+   * pop at the same real moment, and no pop point or payout changes.
+   */
+  const WARP_AT = Math.log(C.WARP_FROM) / C.GROWTH_RATE; // τ0 in ms
+  const toReal = (tau) => (tau <= WARP_AT ? tau : WARP_AT + (tau - WARP_AT) / C.WARP_SPEEDUP);
+  const toClock = (t) => (t <= WARP_AT ? t : WARP_AT + (t - WARP_AT) * C.WARP_SPEEDUP);
+
   class SharedBalloon {
     constructor(index, outcome) {
       Object.assign(this, outcome);
+      this.popTimeMs = toReal(outcome.popTimeMs); // outcome times are on the normal-curve clock
       this.index = index;
       this.state = 'filling'; // filling | popped | maxed
       this.multiplier = 1;
@@ -34,11 +46,12 @@
 
     get isFilling() { return this.state === 'filling'; }
 
-    /** Time (ms after launch) at which this balloon reaches multiplier m. */
-    timeFor(m) { return Math.log(m) / (C.GROWTH_RATE * this.speed); }
+    /** Real time (ms after launch) at which this balloon reaches multiplier m. */
+    timeFor(m) { return toReal(Math.log(m) / (C.GROWTH_RATE * this.speed)); }
 
     multiplierAt(elapsed) {
-      return Math.min(this.maxMultiplier, Math.exp(C.GROWTH_RATE * this.speed * Math.max(0, elapsed)));
+      const tau = toClock(Math.max(0, elapsed));
+      return Math.min(this.maxMultiplier, Math.exp(C.GROWTH_RATE * this.speed * tau));
     }
 
     /** Advances to `elapsed` ms after launch; returns true if it just finished. */
@@ -168,4 +181,5 @@
 
   BF.RoundEngine = RoundEngine;
   BF.SharedBalloon = SharedBalloon;
+  BF.flightClock = { toReal, toClock, WARP_AT };
 })();
