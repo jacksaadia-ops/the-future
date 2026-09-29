@@ -3,6 +3,7 @@
    ========================================================================== */
 
 :root {
+  color-scheme: dark; /* single, deliberately dark look */
   --bg: #0a0716;
   --bg-2: #120c26;
   --panel: rgba(255, 255, 255, 0.045);
@@ -89,7 +90,7 @@ kbd {
   background: rgba(10, 7, 22, 0.7);
   border: 1px solid var(--border);
   backdrop-filter: blur(14px);
-  position: sticky; top: 8px; z-index: 30;
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 30;
 }
 
 .brand { display: flex; align-items: center; gap: 10px; }
@@ -767,7 +768,7 @@ kbd {
 
 @media (max-width: 640px) {
   .app { padding: 8px 10px 20px; gap: 12px; }
-  .topbar { padding: 8px 10px; top: 4px; flex-wrap: wrap; row-gap: 8px; }
+  .topbar { padding: 8px 10px; top: calc(env(safe-area-inset-top, 0px) + 4px); flex-wrap: wrap; row-gap: 8px; }
   .brand-name { font-size: 17px; }
   .brand-mark { width: 24px; height: 29px; }
   .top-stats { order: 3; width: 100%; justify-content: space-between; }

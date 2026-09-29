@@ -380,11 +380,17 @@
         this.save();
       });
 
-      $('#reset-btn').addEventListener('click', () => {
-        if (window.confirm('Reset balance, level, skins and streak?')) {
+      // Two-step reset (no browser confirm(): embedded viewers block it).
+      $('#reset-btn').addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        if (btn.dataset.armed) {
           BF.storage.clear();
           window.location.reload();
+          return;
         }
+        btn.dataset.armed = '1';
+        btn.textContent = 'Click again to reset balance, level, skins and streak';
+        setTimeout(() => { delete btn.dataset.armed; btn.textContent = 'Reset progress'; }, 4000);
       });
 
       document.addEventListener('keydown', (e) => {
