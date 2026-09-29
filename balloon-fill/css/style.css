@@ -871,3 +871,6 @@ button.hchip:hover { filter: brightness(1.25); }
 .fair-balloon { margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid var(--border); }
 .fair-balloon h4 { margin: 0 0 4px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .fair-balloon .rules-table th { font-size: 12px; }
+
+/* Sound is on but the browser is still waiting for a tap to start audio. */
+.icon-btn.waiting { color: var(--gold); border-color: rgba(255, 201, 51, .5); animation: pulse 1.4s ease-in-out infinite; }

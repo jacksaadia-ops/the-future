@@ -19,6 +19,8 @@
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
+      // iPhone: play through the ring/silent switch like a media app (Safari 17+).
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* unsupported */ }
       ctx = new AC();
       master = ctx.createGain();
       master.gain.value = 0.55;
@@ -27,8 +29,17 @@
       const d = noiseBuffer.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    // 'suspended' before the first tap, 'interrupted' on iOS after a call or app switch.
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
     return ctx;
+  }
+
+  /** iOS only starts audio for sound played inside a tap: play one silent sample. */
+  function primeWithSilence() {
+    const src = ctx.createBufferSource();
+    src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    src.connect(ctx.destination);
+    src.start(0);
   }
 
   function env(gainNode, t, attack, peak, decay) {
@@ -97,8 +108,14 @@
       enabled = on;
       if (!on) Object.keys(loops).forEach((id) => this.stopInflate(id));
     },
-    /** Must be called from a user gesture once so browsers allow audio. */
-    unlock() { if (enabled) ensure(); },
+    /** Call from a user gesture (tap, click, key) so browsers allow audio. */
+    unlock() {
+      if (!enabled || !ensure()) return;
+      if (ctx.state !== 'running') primeWithSilence();
+    },
+
+    /** True once the browser is actually playing audio. */
+    get running() { return !!ctx && ctx.state === 'running'; },
     useFile(name, url) { files[name] = url; },
 
     /** Haptic feedback on phones; follows the sound toggle. */

@@ -320,7 +320,13 @@
     /* ================= UI wiring ================= */
 
     bindUI() {
-      document.addEventListener('pointerdown', () => BF.sound.unlock(), { once: true });
+      // Phones only allow audio after a completed tap (touchend/click), not on touch-down,
+      // so keep trying on every real gesture until the browser reports audio running.
+      const unlockAudio = () => {
+        BF.sound.unlock();
+        if (BF.sound.running) ['click', 'touchend', 'keydown'].forEach((t) => document.removeEventListener(t, unlockAudio, true));
+      };
+      ['click', 'touchend', 'keydown'].forEach((t) => document.addEventListener(t, unlockAudio, true));
 
       this.views.forEach((view, i) => {
         view.r.action.addEventListener('click', () => this.slotAction(i));
@@ -566,6 +572,7 @@
       this.renderRoundBar(now, phase, remaining);
       this.renderBalance();
       this.renderBigButton();
+      this.renderSoundState();
       requestAnimationFrame(this.frame);
     }
 
@@ -723,6 +730,16 @@
         }));
         grid.appendChild(card);
       });
+    }
+
+    /** Flags the sound button when sound is on but the browser hasn't started audio yet. */
+    renderSoundState() {
+      const waiting = BF.sound.enabled && !BF.sound.running;
+      if (this.soundWaiting === waiting) return;
+      this.soundWaiting = waiting;
+      const b = $('#sound-btn');
+      b.classList.toggle('waiting', waiting);
+      b.title = waiting ? 'Tap anywhere to turn on sound' : 'Toggle sound';
     }
 
     renderSoundBtn() {
