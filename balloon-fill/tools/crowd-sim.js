@@ -81,8 +81,8 @@ function runSession(players, rounds) {
     let roundPaid = 0;
     for (const bet of bets) {
       const b = shared[bet.balloon];
-      // After the golden reveal, half the players on that balloon raise their target to the best one.
-      const target = b.golden && Math.random() < 0.5 ? G.outcome.goldenBestTarget() : bet.target;
+      // After the golden reveal, half the players on that balloon raise their target to the cap.
+      const target = b.golden && Math.random() < 0.5 ? G.CONFIG.GOLDEN_CAP : bet.target;
       const slot = new G.BetSlot(bet.balloon);
       slot.place(bet.amount, target);
       slot.activate();

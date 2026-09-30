@@ -15,20 +15,19 @@ Every player watches the same two balloons.
 While a round is running you can queue a bet for the next round ("Bet Next Round"); it is placed automatically when betting opens.
 
 ## Odds
-- Multiplier: `m(t) = e^(0.00012 · speed · t_ms)` (normal ≈ 2x at 5.8 s, 5x at 13.4 s). Above **5x** the clock runs **3× faster** (`WARP_FROM` / `WARP_SPEEDUP`), so rare high-flyers finish sooner; every balloon uses the same clock, so pop points, payouts and the golden "same moment" rule are unchanged.
+- Multiplier: `m(t) = e^(0.00012 · speed · t_ms)` (normal ≈ 2x at 5.8 s, 5x at 13.4 s). Above **5x** the clock runs **3× faster** (`WARP_FROM` / `WARP_SPEEDUP`), so rare high-flyers finish sooner; every balloon uses the same clock, so pop points and payouts are unchanged.
 - **Auto bet** repeats a balloon's bet for up to 100 rounds; it stops when the rounds run out, the balance is too low, the bet is cancelled, or it's switched off. Operators can disable it (`AUTO_BET`) for markets that restrict autoplay.
-- Normal balloon pop point: `P(survive to x) = k / x`, so every cash-out target returns `k`.
-- **Golden Balloon**: each balloon independently has a **1% chance**, revealed after bets lock, so there is no pattern to wait for. It inflates at **1.5× speed** and pops at exactly the moment it otherwise would, so its chance of popping at any moment is identical to a normal balloon's. **10x is its maximum**: about 80% of golden balloons pop before reaching it; the ~20% that get there cash out every bet still in at 10x. Held to the cap it returns `k · 10^(1/3) ≈ 2.15k`.
-- **RTP is one operator setting** (`RTP` in `config.js`, one of 94 / 95.5 / 96 / 97 %, default 95.5%; `?rtp=0.97` in the URL for testing). `k` is derived so that the best possible overall return — golden balloons held to the cap — equals the setting exactly:
-  `RTP = k · [(1 − p) + p · cap^(1 − 1/speed)]`
+- Pop point for every balloon, golden or normal: `P(survive to x) = k / x` with `k = RTP`, so every cash-out target returns the RTP.
+- **Golden Balloon**: each balloon independently has a **1% chance**, revealed after bets lock, so there is no pattern to wait for. It has **exactly the same pop odds** as a normal balloon (same pop point, same multiplier) and only inflates at **1.5× speed**, so it gets there sooner. **10x is its maximum**: like a normal balloon, about 90% pop before 10x; the ~10% that get there cash out every bet still in at 10x. It returns the same `k` as a normal balloon at every target.
+- **RTP is one operator setting** (`RTP` in `config.js`, one of 94 / 95.5 / 96 / 97 %, default 95.5%; `?rtp=0.97` in the URL for testing). `k = RTP`: every target on every balloon returns the setting.
 
 ## Payouts (from `npm run simulate`)
-| RTP setting | Normal balloons | Golden at best target (9.99x) | Overall (best play) |
+| RTP setting | Normal balloons, any target | Golden balloons, any target | Overall |
 | --- | --- | --- | --- |
-| 97% | 95.9% | ~206% | 97.0% |
-| 96% | 94.9% | ~204% | 96.0% |
-| **95.5% (default)** | 94.4% | ~203% | 95.5% |
-| 94% | 92.9% | ~200% | 94.0% |
+| 97% | 97.0% | 97.0% | 97.0% |
+| 96% | 96.0% | 96.0% | 96.0% |
+| **95.5% (default)** | 95.5% | 95.5% | 95.5% |
+| 94% | 94.0% | 94.0% | 94.0% |
 
 ## Rewards
 - **Daily bonus**: $100 on day 1, +$50 per consecutive day up to $500; a missed day resets the streak. Level 20 doubles it.

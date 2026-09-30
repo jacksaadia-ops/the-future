@@ -4,23 +4,10 @@ const { loadGame } = require('./load');
 
 const BF = loadGame();
 const C = BF.CONFIG;
-const { samplePopPoint, survivalConstant, goldenFactor, buildBalloon, LocalRoundProvider } = BF.outcome;
+const { samplePopPoint, survivalConstant, buildBalloon, LocalRoundProvider } = BF.outcome;
 
-test('survival constant makes optimal overall return equal the RTP setting', () => {
-  for (const rtp of C.RTP_OPTIONS) {
-    const k = survivalConstant(rtp);
-    const overall = k * ((1 - C.GOLDEN_CHANCE) + C.GOLDEN_CHANCE * goldenFactor());
-    assert.ok(Math.abs(overall - rtp) < 1e-12);
-    assert.ok(k < rtp, 'normal balloons return a little less than the headline RTP');
-  }
-});
-
-test('golden factor is the exact best return over every cent target', () => {
-  const { goldenFactor, goldenReturn, goldenBestTarget } = BF.outcome;
-  const continuous = C.GOLDEN_CAP ** (1 - 1 / C.GOLDEN_SPEED);
-  assert.ok(goldenFactor() <= continuous && goldenFactor() > continuous * 0.99);
-  for (let c = 101; c <= C.GOLDEN_CAP * 100; c++) assert.ok(goldenReturn(c / 100) <= goldenFactor() + 1e-12);
-  assert.equal(goldenReturn(goldenBestTarget()), goldenFactor());
+test('survival constant equals the RTP setting for every balloon', () => {
+  for (const rtp of C.RTP_OPTIONS) assert.equal(survivalConstant(rtp), rtp);
 });
 
 test('instant pops (below 1.01x) happen at rate 1 − k/1.01', () => {
@@ -41,12 +28,16 @@ test('pop point never drops below 1.00x and follows k / x', () => {
   assert.ok(Math.abs(over2 / n - k / 2) < 0.01, `P(>=2) was ${over2 / n}, expected ${k / 2}`);
 });
 
-test('golden balloons pop at the same moment, grow faster and stop at the cap', () => {
-  const normal = buildBalloon(4, false);
+test('golden balloons pop at the same multiplier as normal ones, just sooner, and stop at the cap', () => {
+  for (const p of [1, 1.5, 4, 9.99]) {
+    const normal = buildBalloon(p, false);
+    const golden = buildBalloon(p, true);
+    assert.equal(golden.popMultiplier, normal.popMultiplier);
+    assert.equal(golden.popMultiplier, p);
+    assert.ok(Math.abs(golden.popTimeMs * C.GOLDEN_SPEED - normal.popTimeMs) < 1e-9);
+  }
   const golden = buildBalloon(4, true);
-  assert.equal(golden.popTimeMs, normal.popTimeMs);
   assert.equal(golden.speed, C.GOLDEN_SPEED);
-  assert.ok(Math.abs(golden.popMultiplier - 4 ** C.GOLDEN_SPEED) < 1e-9);
   assert.equal(golden.maxMultiplier, C.GOLDEN_CAP);
   assert.equal(buildBalloon(500, true).popMultiplier, C.GOLDEN_CAP);
 });

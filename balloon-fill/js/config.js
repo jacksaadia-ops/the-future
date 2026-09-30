@@ -24,8 +24,8 @@ window.BF = window.BF || {};
     DEFAULT_BETS: [10, 10],
     DEFAULT_AUTO: [2.0, 5.0],
 
-    // Overall return to player, INCLUDING golden balloons played optimally.
-    // The normal-balloon odds are derived from this (see outcome.js).
+    // Return to player for every cash-out target, on golden and normal balloons
+    // alike (see outcome.js).
     RTP: chosenRtp(0.955),
     RTP_OPTIONS,
 
@@ -34,8 +34,9 @@ window.BF = window.BF || {};
     GROWTH_RATE: 0.00012,
 
     // Golden Balloon: each balloon independently has GOLDEN_CHANCE of turning
-    // golden, revealed only after bets lock. It inflates GOLDEN_SPEED× faster,
-    // pops at the same moment it otherwise would, and pays out at GOLDEN_CAP.
+    // golden, revealed only after bets lock. It has exactly the same pop odds as
+    // a normal balloon and inflates GOLDEN_SPEED× faster, so it reaches the same
+    // pop point sooner. If it reaches GOLDEN_CAP it pays out there.
     GOLDEN_CHANCE: 0.01,
     GOLDEN_SPEED: 1.5,
     GOLDEN_CAP: 10,
@@ -44,8 +45,7 @@ window.BF = window.BF || {};
 
     // Long flights speed up: once a normal balloon passes WARP_FROM, its clock
     // runs WARP_SPEEDUP× faster. Pop points (and therefore odds) are unchanged;
-    // rare high-flyers just finish sooner. Golden and normal balloons share the
-    // same clock, so they still pop at exactly the same moment.
+    // rare high-flyers just finish sooner. Every balloon uses the same mapping.
     WARP_FROM: 5,
     WARP_SPEEDUP: 3,
 

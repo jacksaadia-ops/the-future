@@ -15,7 +15,7 @@ const { loadGame } = require('../tests/load');
 
 const G = loadGame();
 const C = G.CONFIG;
-const { survivalConstant, goldenFactor, goldenReturn, goldenBestTarget, samplePopPoint, buildBalloon } = G.outcome;
+const { survivalConstant, samplePopPoint, buildBalloon } = G.outcome;
 
 const N = Number(process.argv[2]) || 10000000;
 const pct = (x, d = 3) => `${(x * 100).toFixed(d)}%`;
@@ -24,20 +24,15 @@ const oneIn = (p) => (p > 0 ? `1 in ${1 / p < 10 ? (1 / p).toFixed(2) : Math.rou
 
 /* ---------------- exact theory ---------------- */
 
-/** P(a normal balloon reaches target x), x on the 0.01 grid, x ≥ 1.01. */
-const pNormal = (x, k) => Math.min(1, k / x);
-/** P(a golden balloon reaches target y ≤ cap). */
-const pGolden = (y, k) => goldenReturn(y) * k / Math.min(y, C.GOLDEN_CAP);
+/** P(a balloon, golden or normal, reaches target x), x on the 0.01 grid, x ≥ 1.01. */
+const pReach = (x, k) => Math.min(1, k / x);
 
 function theory(rtp) {
   const k = survivalConstant(rtp);
-  const p = C.GOLDEN_CHANCE;
-  const gf = goldenFactor();
   return {
-    rtp, k, gf,
+    rtp, k,
     instant: 1 - k / 1.01,
-    best: k * ((1 - p) + p * gf),
-    autoAnyTarget: k * ((1 - p) + p * 1), // lower bound when golden also cashed at a low target
+    best: k,
     min: k / 1.01, // manual cash-out at 1.00x (rounded down to the cent) — the worst possible play
   };
 }
@@ -105,7 +100,6 @@ function build() {
   const lines = [];
   const L = (s = '') => lines.push(s);
   const main = theory(C.RTP);
-  const bestGold = goldenBestTarget();
   const timing = roundTiming(200000);
 
   L('# Balloon Fill — Game Math Report (PAR sheet)');
@@ -138,7 +132,7 @@ function build() {
   L(`| Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |`);
   L(`| Maximum multiplier | ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (balloon pays out at this value if it survives) |`);
   L(`| Golden chance | ${pct(C.GOLDEN_CHANCE, 2)} per balloon, independent, revealed only after bets lock |`);
-  L(`| Golden speed | ${C.GOLDEN_SPEED}× (pops at the same moment it otherwise would) |`);
+  L(`| Golden speed | ${C.GOLDEN_SPEED}× (same pop point and odds as a normal balloon; it gets there sooner) |`);
   L(`| Golden cap | ${fx(C.GOLDEN_CAP)} (paid automatically to every bet still in) |`);
   L(`| Bet limits | ${C.MIN_BET.toFixed(2)} – ${C.MAX_BET.toLocaleString('en-US')} per balloon |`);
   L(`| Round timing | betting ${C.BETTING_MS / 1000} s, lock/reveal ${C.REVEAL_MS / 1000} s, results ${C.ROUND_END_MS / 1000} s |`);
@@ -147,36 +141,35 @@ function build() {
 
   L('## 3. Mathematical model');
   L();
-  L('For each balloon a uniform U in [0, 1) — the first 52 bits of the balloon\'s provably-fair hash — is converted to a normal-curve pop point:');
+  L('For each balloon a uniform U in [0, 1) — the first 52 bits of the balloon\'s provably-fair hash — is converted to a pop point:');
   L();
   L('    P = max(1.00, floor_to_cent( k / (1 − U) ))       capped at the maximum multiplier');
   L();
   L('so for any target x on the 0.01 grid (x ≥ 1.01):  **P(balloon reaches x) = k / x**, and cashing out at x returns');
   L('**x · k / x = k** regardless of x. Pop points below 1.01x pop instantly (rate 1 − k/1.01).');
   L();
-  L(`A golden balloon uses the same pop *time* but grows ${C.GOLDEN_SPEED}× faster, so it reaches y exactly when the`);
-  L(`normal pop point is ≥ y^(1/${C.GOLDEN_SPEED}). Its return at target y ≤ cap is k · y / ceil_to_cent(y^(1/${C.GOLDEN_SPEED})).`);
-  L(`The best golden target is **${fx(bestGold)}**, returning k × ${goldenFactor().toFixed(5)}`);
-  L(`(holding to the ${fx(C.GOLDEN_CAP)} cap returns k × ${goldenReturn(C.GOLDEN_CAP).toFixed(5)}; the continuous approximation is ${(C.GOLDEN_CAP ** (1 - 1 / C.GOLDEN_SPEED)).toFixed(5)}).`);
+  L(`A golden balloon draws its pop point P exactly the same way and pops at the same multiplier P; it only inflates`);
+  L(`${C.GOLDEN_SPEED}× faster, so it reaches P sooner. If P ≥ ${fx(C.GOLDEN_CAP)} it stops at the cap and every bet still in is paid`);
+  L(`${fx(C.GOLDEN_CAP)}, so a golden target y returns k for y ≤ cap, and any higher target is paid at the cap (also k).`);
+  L('The chance of reaching any multiplier is therefore identical for golden and normal balloons.');
   L();
-  L('k is set from the operator RTP so that best-possible play returns exactly the configured RTP (GLI-19 §4.7.1 measures');
-  L('minimum RTP using the strategy with the greatest return):');
+  L('k is the operator RTP, so every cash-out target on every balloon returns exactly the configured RTP:');
   L();
-  L(`    RTP = k · [ (1 − ${C.GOLDEN_CHANCE}) + ${C.GOLDEN_CHANCE} · ${goldenFactor().toFixed(5)} ]`);
+  L('    k = RTP');
   L();
 
   L('## 4. RTP by setting');
   L();
-  L('| RTP setting | k (normal balloon return) | Instant-pop rate | Best play (theory) | Best play (simulated, 95% CI) | Lowest possible play |');
+  L('| RTP setting | k (return, any target) | Instant-pop rate | Theory | Simulated, 95% CI | Lowest possible play |');
   L('| --- | --- | --- | --- | --- | --- |');
   for (const rtp of C.RTP_OPTIONS) {
     const t = theory(rtp);
-    const s = simulate(rtp, N, 2, bestGold);
+    const s = simulate(rtp, N, 2, 5);
     L(`| ${G.util.rtp(rtp)} | ${pct(t.k)} | ${pct(t.instant)} | ${pct(t.best, 4)} | ${pct(s.mean)} ± ${pct(s.ci)} | ${pct(t.min)} |`);
   }
   L();
-  L('- **Best play**: any normal-balloon target (all return k), golden balloons cashed at the best golden target.');
-  L('- **Any auto cash-out target**: between k and best play, depending on the golden-balloon target.');
+  L('- **Theory**: every auto cash-out target, on golden and normal balloons, returns k. Simulated with a 2.00x target on normal');
+  L('  balloons and a 5.00x target on golden ones.');
   L('- **Lowest possible play**: manual cash-out at the very start (paid 1.00x after rounding down to the cent) returns k / 1.01.');
   L('  Manual cash-outs in general return between k/1.01 and k because the multiplier is rounded down to the cent.');
   L();
@@ -185,38 +178,30 @@ function build() {
   L();
   L(`k = ${main.k.toFixed(6)}.`);
   L();
-  L('### 5.1 Normal balloon — per cash-out target (bet of 1)');
+  L('### 5.1 Per cash-out target (bet of 1, golden or normal balloon)');
   L();
   L('| Target | P(win) | Hit frequency | RTP | Std. deviation |');
   L('| --- | --- | --- | --- | --- |');
   for (const x of [1.01, 1.1, 1.25, 1.5, 2, 3, 5, 10, 20, 50, 100, 1000, C.MAX_MULTIPLIER]) {
-    const p = pNormal(x, main.k);
+    const p = pReach(x, main.k);
     L(`| ${fx(x)} | ${pct(p)} | ${oneIn(p)} | ${pct(x * p)} | ${Math.sqrt(x * x * p - (x * p) ** 2).toFixed(3)} |`);
   }
   L();
-  L('### 5.2 Golden balloon — per cash-out target (bet of 1)');
+  L(`Golden balloons follow the same table up to the ${fx(C.GOLDEN_CAP)} cap; a golden target above the cap is paid at the cap with`);
+  L(`probability ${pct(pReach(C.GOLDEN_CAP, main.k))}, returning the same k.`);
   L();
-  L('| Target | P(win) | RTP |');
-  L('| --- | --- | --- |');
-  const gTargets = [1.5, 2, 3, 5, 7.5, bestGold, C.GOLDEN_CAP].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
-  for (const y of gTargets) {
-    const p = pGolden(y, main.k);
-    const note = y === bestGold ? ' (best)' : y === C.GOLDEN_CAP ? ' (cap)' : '';
-    L(`| ${fx(y)}${note} | ${pct(p)} | ${pct(y * p)} |`);
-  }
-  L();
-  L('### 5.3 Pop-point distribution (normal balloon)');
+  L('### 5.2 Pop-point distribution (golden and normal balloons)');
   L();
   L('| Pops before | Probability |');
   L('| --- | --- |');
-  for (const x of [1.01, 1.5, 2, 3, 5, 10, 100]) L(`| ${fx(x)} | ${pct(1 - pNormal(x, main.k))} |`);
+  for (const x of [1.01, 1.5, 2, 3, 5, 10, 100]) L(`| ${fx(x)} | ${pct(1 - pReach(x, main.k))} |`);
   L(`| (median pop point) | ${fx(Math.ceil(2 * main.k * 100) / 100)} |`);
   L();
-  L('### 5.4 Golden frequency');
+  L('### 5.3 Golden frequency');
   L();
   L(`- Per balloon: ${pct(C.GOLDEN_CHANCE, 2)} (${oneIn(C.GOLDEN_CHANCE)}).`);
   L(`- Per round (at least one of ${C.BALLOONS}): ${pct(1 - (1 - C.GOLDEN_CHANCE) ** C.BALLOONS, 2)}.`);
-  L(`- Golden balloon reaching the ${fx(C.GOLDEN_CAP)} cap: ${pct(pGolden(C.GOLDEN_CAP, main.k))} of golden balloons.`);
+  L(`- Golden balloon reaching the ${fx(C.GOLDEN_CAP)} cap: ${pct(pReach(C.GOLDEN_CAP, main.k))} of golden balloons (the same as a normal balloon reaching ${fx(C.GOLDEN_CAP)}).`);
   L('- Golden status is drawn independently for every balloon, so past rounds carry no information about future ones.');
   L();
 
@@ -232,7 +217,7 @@ function build() {
 
   L('## 7. Exposure');
   L();
-  L(`- Maximum multiplier on a normal balloon: ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (probability ${pct(pNormal(C.MAX_MULTIPLIER, main.k), 4)} per balloon).`);
+  L(`- Maximum multiplier on a normal balloon: ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (probability ${pct(pReach(C.MAX_MULTIPLIER, main.k), 4)} per balloon).`);
   L(`- Maximum single payout at the current bet limit: ${(C.MAX_BET * C.MAX_MULTIPLIER).toLocaleString('en-US')} (bet ${C.MAX_BET.toLocaleString('en-US')} × ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x).`);
   L('- **Recommendation:** add an operator-configurable maximum win per bet (a common requirement for operators),');
   L('  and state it in the game rules. Capping winnings reduces RTP slightly for the highest targets; this report must then be regenerated.');

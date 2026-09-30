@@ -17,8 +17,7 @@ test('rules quote the configured RTP and limits', () => {
 
 test('rules figures agree with the odds model', () => {
   const f = BF.rules.figures(0.97);
-  const overall = f.k * (1 - C.GOLDEN_CHANCE) + C.GOLDEN_CHANCE * f.goldenBest;
-  assert.ok(Math.abs(overall - 0.97) < 1e-12);
-  assert.ok(f.min < f.k && f.k < 0.97);
+  assert.equal(f.k, 0.97); // every target on every balloon returns the RTP
+  assert.ok(f.min < f.k);
   assert.ok(Math.abs(f.instant - (1 - f.min)) < 1e-12);
 });

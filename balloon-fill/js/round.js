@@ -26,8 +26,7 @@
    * Flight clock. Outcomes are defined on a "normal-curve" clock τ where a
    * normal balloon is at e^(r·τ). Past WARP_FROM (τ0) the on-screen clock runs
    * WARP_SPEEDUP× faster, so long flights finish sooner. Every balloon uses the
-   * same mapping, so golden and normal balloons with the same pop point still
-   * pop at the same real moment, and no pop point or payout changes.
+   * same mapping, so no pop point or payout changes.
    */
   const WARP_AT = Math.log(C.WARP_FROM) / C.GROWTH_RATE; // τ0 in ms
   const toReal = (tau) => (tau <= WARP_AT ? tau : WARP_AT + (tau - WARP_AT) / C.WARP_SPEEDUP);

@@ -18,8 +18,6 @@
       k,
       min: k / 1.01,
       instant: 1 - k / 1.01,
-      goldenBest: k * O.goldenFactor(),
-      goldenBestTarget: O.goldenBestTarget(),
       reach: [1.5, 2, 5, 10, 100].map((x) => ({ x, p: k / x })),
     };
   }
@@ -47,24 +45,23 @@
       <h3>Golden Balloon</h3>
       <ul>
         <li>Every balloon has an independent ${pct(C.GOLDEN_CHANCE, 0)} chance (1 in ${Math.round(1 / C.GOLDEN_CHANCE)}) of being golden. It is revealed only after bets lock, and past rounds have no effect on the chance.</li>
-        <li>A Golden Balloon inflates ${C.GOLDEN_SPEED}× faster but pops at exactly the same moment it would have as a normal balloon, so its multiplier climbs higher before it pops.</li>
-        <li>It can pop at any moment, with exactly the same chance as a normal balloon. Most Golden Balloons (about ${Math.round((1 - O.goldenReturn(C.GOLDEN_CAP) * O.survivalConstant(rtp) / C.GOLDEN_CAP) * 100)} in 100) pop before ${fx(C.GOLDEN_CAP)}, and bets still in when it pops are lost.</li>
+        <li>A Golden Balloon inflates ${C.GOLDEN_SPEED}× faster, so the round moves quicker.</li>
+        <li>It has exactly the same chance to pop as a normal balloon at every multiplier: the chance of reaching any multiplier is the same for golden and normal balloons. About ${Math.round((1 - f.k / C.GOLDEN_CAP) * 100)} in 100 Golden Balloons pop before ${fx(C.GOLDEN_CAP)}, and bets still in when it pops are lost.</li>
         <li>${fx(C.GOLDEN_CAP)} is the maximum. If a Golden Balloon gets there without popping, every bet still in is cashed out at ${fx(C.GOLDEN_CAP)} and the balloon floats away.</li>
       </ul>
 
       <h3>Payouts and odds</h3>
       <table class="rules-table">
         <tr><th>Return to player (RTP)</th><td><b>${pct(f.rtp, 2)}</b></td></tr>
-        <tr><th>Normal balloon, any cash-out target</th><td>${pct(f.k)}</td></tr>
-        <tr><th>Golden balloon, best target (${fx(f.goldenBestTarget)})</th><td>${pct(f.goldenBest)}</td></tr>
+        <tr><th>Any balloon, any cash-out target</th><td>${pct(f.k)}</td></tr>
         <tr><th>Lowest possible return (cashing out at 1.00x)</th><td>${pct(f.min)}</td></tr>
         <tr><th>Maximum multiplier</th><td>${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (paid automatically if reached)</td></tr>
         <tr><th>Golden Balloon cap</th><td>${fx(C.GOLDEN_CAP)}</td></tr>
         <tr><th>Bet per balloon</th><td>${money(C.MIN_BET)} – ${money(C.MAX_BET)}</td></tr>
       </table>
-      <p class="rules-note">The RTP is the theoretical long-run return using the best possible play: any cash-out target on normal balloons and a ${fx(f.goldenBestTarget)} target on Golden Balloons. Actual results in any session will vary.</p>
+      <p class="rules-note">The RTP is the theoretical long-run return. It is the same for every cash-out target and for golden and normal balloons. Actual results in any session will vary.</p>
       <table class="rules-table">
-        <tr><th colspan="2" class="rules-caption">Chance a normal balloon reaches…</th></tr>
+        <tr><th colspan="2" class="rules-caption">Chance a balloon (golden or normal) reaches…</th></tr>
         ${f.reach.map((r) => `<tr><th>${fx(r.x)}</th><td>${pct(r.p)} (about 1 in ${(1 / r.p).toFixed(r.p > 0.1 ? 1 : 0)})</td></tr>`).join('')}
       </table>
 

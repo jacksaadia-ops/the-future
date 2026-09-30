@@ -6,8 +6,8 @@
  *
  * For each operator RTP setting, prints the return (total paid / total bet)
  * of normal and golden balloons at several auto cash-out targets, and the
- * overall return for a player who holds golden balloons to the cap (the best
- * possible strategy) — which should equal the configured RTP.
+ * overall return with real golden odds. Every figure should equal the
+ * configured RTP: golden and normal balloons have the same odds.
  */
 const { loadGame } = require('../tests/load');
 
@@ -55,7 +55,7 @@ if (require.main === module) {
   const targets = [1.5, 2, 5, 10];
 
   console.log(`Balloon Fill payout simulation — ${n.toLocaleString()} balloons per figure`);
-  console.log(`Golden: ${C.GOLDEN_CHANCE * 100}% chance per balloon, ${C.GOLDEN_SPEED}x speed, pays ${C.GOLDEN_CAP}x at the cap\n`);
+  console.log(`Golden: ${C.GOLDEN_CHANCE * 100}% chance per balloon, ${C.GOLDEN_SPEED}x speed, same odds, max ${C.GOLDEN_CAP}x\n`);
 
   for (const rtp of C.RTP_OPTIONS) {
     const k = survivalConstant(rtp);

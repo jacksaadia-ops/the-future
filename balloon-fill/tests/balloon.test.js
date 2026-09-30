@@ -83,13 +83,14 @@ test('golden balloon honours a lower auto target and ignores a higher one', () =
   assert.equal(high.slot.result.multiplier, C.GOLDEN_CAP);
 });
 
-test('golden balloon pops at the same moment a normal one would', () => {
+test('golden balloon pops at the same multiplier a normal one would, just sooner', () => {
   const { balloon, slot, at } = activeBet(2, { golden: true });
-  at(timeFor(2) - 1);
+  at(timeFor(2, C.GOLDEN_SPEED) - 1);
   assert.equal(slot.status, 'active');
-  at(timeFor(2));
+  at(timeFor(2, C.GOLDEN_SPEED));
   assert.equal(slot.status, 'lost');
-  assert.ok(Math.abs(balloon.multiplier - 2 ** C.GOLDEN_SPEED) < 1e-9);
+  assert.equal(balloon.multiplier, 2);
+  assert.ok(timeFor(2, C.GOLDEN_SPEED) < timeFor(2));
 });
 
 test('clear() resets a settled bet for the next round', () => {

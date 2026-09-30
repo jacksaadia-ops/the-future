@@ -30,11 +30,14 @@ test('below the switch-over nothing changes; above it long flights are shorter',
   assert.ok(t100 < plain(100));
 });
 
-test('golden and normal balloons with the same pop point still pop at the same moment', () => {
-  for (const p of [1.5, 3, 50, 800]) {
+test('golden and normal balloons with the same pop point pop at the same multiplier', () => {
+  for (const p of [1.5, 3, 7.77]) {
     const g = balloon(p, true);
     const n = balloon(p, false);
-    assert.equal(g.popTimeMs, n.popTimeMs);
+    g.update(g.endTimeMs);
+    n.update(n.endTimeMs);
+    assert.ok(Math.abs(g.multiplier - n.multiplier) < 1e-9, `${p}: ${g.multiplier} vs ${n.multiplier}`);
+    assert.ok(g.endTimeMs <= n.endTimeMs);
   }
 });
 

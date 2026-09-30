@@ -7,7 +7,7 @@
  *   BalloonOutcome = {
  *     golden,         boolean
  *     speed,          multiplier growth speed factor (1 normal, GOLDEN_SPEED golden)
- *     popTimeMs,      ms after launch when the balloon pops
+ *     popTimeMs,      when it pops, in ms on the normal-speed flight clock
  *     popMultiplier,  multiplier shown at the moment of popping
  *     maxMultiplier,  the balloon pays out and floats away here if it survives (golden cap)
  *   }
@@ -18,13 +18,12 @@
  * HMAC_SHA256(serverSeed, `${roundId}:${balloonIndex}`), confirm cash-outs
  * server-side, and reveal serverSeed after the round so anyone can verify it.
  *
- * Odds. For a normal balloon P(pop point ≥ x) = k / x, so every cash-out
- * target returns k. A golden balloon pops at the same TIME a normal one would
- * but inflates `speed`× faster, so its best cash-out returns about
- * k · cap^(1 − 1/speed) (goldenFactor() computes it exactly on the 0.01 grid).
- * k is chosen so that the overall return, with goldens played optimally,
- * equals CONFIG.RTP exactly:
- *     RTP = k · [(1 − p) + p · goldenFactor()]
+ * Odds. Every balloon, golden or normal, draws its pop point from the same
+ * distribution: P(pop point ≥ x) = k / x with k = CONFIG.RTP, so every cash-out
+ * target returns exactly the RTP. A golden balloon only inflates `speed`×
+ * faster: it reaches the same pop point sooner. If its pop point is at or above
+ * GOLDEN_CAP it stops at the cap and pays everyone still in, which never returns
+ * more than k either (P(pop ≥ cap) · cap = k).
  */
 (function () {
   const C = BF.CONFIG;
@@ -40,63 +39,30 @@
     return Math.random();
   }
 
-  const ceil2 = (v) => Math.ceil(v * 100 - 1e-9) / 100;
-
-  /**
-   * Return of a golden balloon cashed out at `target` (on the 0.01 grid), per unit of k.
-   * It reaches y exactly when its normal-curve pop point is ≥ y^(1/speed); pop points
-   * are whole cents, so that probability is k / ceil2(y^(1/speed)).
-   */
-  function goldenReturn(target) {
-    const y = Math.min(target, C.GOLDEN_CAP);
-    return y / ceil2(y ** (1 / C.GOLDEN_SPEED));
-  }
-
-  let goldenBest = null;
-  /**
-   * Best achievable return of a golden balloon, per unit of k, over every
-   * possible cash-out target. (Continuous approximation: cap^(1 − 1/speed);
-   * cent rounding makes a target just under the cap marginally best.)
-   */
-  function goldenFactor() {
-    if (!goldenBest) {
-      goldenBest = { factor: 0, target: 0 };
-      for (let c = 101; c <= Math.round(C.GOLDEN_CAP * 100); c++) {
-        const f = goldenReturn(c / 100);
-        if (f > goldenBest.factor) goldenBest = { factor: f, target: c / 100 };
-      }
-    }
-    return goldenBest.factor;
-  }
-
-  /** The golden cash-out target that achieves goldenFactor(). */
-  function goldenBestTarget() {
-    goldenFactor();
-    return goldenBest.target;
-  }
-
-  /** Survival constant k for a target overall RTP. */
+  /** Survival constant k for a target RTP (the same for golden and normal balloons). */
   function survivalConstant(rtp = C.RTP) {
-    const p = C.GOLDEN_CHANCE;
-    return rtp / ((1 - p) + p * goldenFactor());
+    return rtp;
   }
 
-  /** Uniform sample → pop point on the normal-speed curve (below 1 = instant pop). */
+  /** Uniform sample → pop point (below 1 = instant pop). */
   function samplePopPoint(u, k = survivalConstant()) {
     const raw = k / (1 - u);
     return Math.min(C.MAX_MULTIPLIER, Math.max(1, BF.util.floor2(raw)));
   }
 
-  /** Builds one balloon's outcome from a normal-curve pop point. */
+  /**
+   * Builds one balloon's outcome from its pop point. Golden and normal balloons
+   * with the same pop point pop at the same multiplier; the golden one gets
+   * there `speed`× sooner.
+   */
   function buildBalloon(popPoint, golden) {
-    const popTimeMs = Math.log(popPoint) / C.GROWTH_RATE; // identical for golden & normal
     const speed = golden ? C.GOLDEN_SPEED : 1;
     const maxMultiplier = golden ? C.GOLDEN_CAP : C.MAX_MULTIPLIER;
     return {
       golden,
       speed,
-      popTimeMs,
-      popMultiplier: Math.min(maxMultiplier, Math.exp(C.GROWTH_RATE * speed * popTimeMs)),
+      popTimeMs: Math.log(popPoint) / (C.GROWTH_RATE * speed),
+      popMultiplier: Math.min(maxMultiplier, popPoint),
       maxMultiplier,
     };
   }
@@ -124,7 +90,6 @@
   }
 
   BF.outcome = {
-    LocalRoundProvider, samplePopPoint, survivalConstant, goldenFactor, goldenReturn, goldenBestTarget,
-    buildBalloon, secureRandom,
+    LocalRoundProvider, samplePopPoint, survivalConstant, buildBalloon, secureRandom,
   };
 })();
