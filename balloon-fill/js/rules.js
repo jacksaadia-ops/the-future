@@ -46,8 +46,7 @@
       <ul>
         <li>Every balloon has an independent ${pct(C.GOLDEN_CHANCE, 0)} chance (1 in ${Math.round(1 / C.GOLDEN_CHANCE)}) of being golden. It is revealed only after bets lock, and past rounds have no effect on the chance.</li>
         <li>A Golden Balloon inflates ${C.GOLDEN_SPEED}× faster, so the round moves quicker.</li>
-        <li>It has exactly the same chance to pop as a normal balloon at every multiplier: the chance of reaching any multiplier is the same for golden and normal balloons. About ${Math.round((1 - f.k / C.GOLDEN_CAP) * 100)} in 100 Golden Balloons pop before ${fx(C.GOLDEN_CAP)}, and bets still in when it pops are lost.</li>
-        <li>${fx(C.GOLDEN_CAP)} is the maximum. If a Golden Balloon gets there without popping, every bet still in is cashed out at ${fx(C.GOLDEN_CAP)} and the balloon floats away.</li>
+        <li>It has exactly the same chance to pop as a normal balloon at every multiplier, and the same ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x maximum. Only the speed is different. Bets still in when it pops are lost.</li>
       </ul>
 
       <h3>Payouts and odds</h3>
@@ -56,7 +55,6 @@
         <tr><th>Any balloon, any cash-out target</th><td>${pct(f.k)}</td></tr>
         <tr><th>Lowest possible return (cashing out at 1.00x)</th><td>${pct(f.min)}</td></tr>
         <tr><th>Maximum multiplier</th><td>${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (paid automatically if reached)</td></tr>
-        <tr><th>Golden Balloon cap</th><td>${fx(C.GOLDEN_CAP)}</td></tr>
         <tr><th>Bet per balloon</th><td>${money(C.MIN_BET)} – ${money(C.MAX_BET)}</td></tr>
       </table>
       <p class="rules-note">The RTP is the theoretical long-run return. It is the same for every cash-out target and for golden and normal balloons. Actual results in any session will vary.</p>
@@ -85,7 +83,7 @@
     ];
     return `
       <ol class="howto-steps">${steps.map(([t, d], i) => `<li><span class="howto-num">${i + 1}</span><div><b>${t}</b><p>${d}</p></div></li>`).join('')}</ol>
-      <p class="howto-tip"><b>Golden Balloon</b> About 1 in ${Math.round(1 / C.GOLDEN_CHANCE)} balloons turns gold after bets lock. It fills ${C.GOLDEN_SPEED}× faster but has the same chance to pop, up to a max of ${C.GOLDEN_CAP}x.</p>
+      <p class="howto-tip"><b>Golden Balloon</b> About 1 in ${Math.round(1 / C.GOLDEN_CHANCE)} balloons turns gold after bets lock. It fills ${C.GOLDEN_SPEED}× faster with exactly the same chance to pop.</p>
       <div class="howto-actions">
         <button class="btn-secondary" type="button" data-open-rules>Full rules &amp; payouts</button>
         <button class="btn-primary" type="button" data-close>Got it, let's play</button>

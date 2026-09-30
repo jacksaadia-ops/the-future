@@ -9,7 +9,7 @@
  *     speed,          multiplier growth speed factor (1 normal, GOLDEN_SPEED golden)
  *     popTimeMs,      when it pops, in ms on the normal-speed flight clock
  *     popMultiplier,  multiplier shown at the moment of popping
- *     maxMultiplier,  the balloon pays out and floats away here if it survives (golden cap)
+ *     maxMultiplier,  the balloon pays out and floats away here if it survives
  *   }
  *
  * The round engine asks for the next round when betting OPENS but only reveals
@@ -21,9 +21,8 @@
  * Odds. Every balloon, golden or normal, draws its pop point from the same
  * distribution: P(pop point ≥ x) = k / x with k = CONFIG.RTP, so every cash-out
  * target returns exactly the RTP. A golden balloon only inflates `speed`×
- * faster: it reaches the same pop point sooner. If its pop point is at or above
- * GOLDEN_CAP it stops at the cap and pays everyone still in, which never returns
- * more than k either (P(pop ≥ cap) · cap = k).
+ * faster: it reaches the same pop point sooner. Both share the same maximum
+ * multiplier.
  */
 (function () {
   const C = BF.CONFIG;
@@ -57,7 +56,7 @@
    */
   function buildBalloon(popPoint, golden) {
     const speed = golden ? C.GOLDEN_SPEED : 1;
-    const maxMultiplier = golden ? C.GOLDEN_CAP : C.MAX_MULTIPLIER;
+    const maxMultiplier = C.MAX_MULTIPLIER;
     return {
       golden,
       speed,

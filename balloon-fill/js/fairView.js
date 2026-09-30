@@ -91,7 +91,7 @@
             <tr><th>Pop value: first 13 hex digits ÷ 2<sup>52</sup></th><td>${s.u.toFixed(8)}</td></tr>
             <tr><th>Pop point: ${k.toFixed(6)} ÷ (1 − ${s.u.toFixed(6)}), rounded down to 0.01, min 1.00</th><td>${mult(s.popPoint)}</td></tr>
             <tr><th>Golden value: next 13 hex digits ÷ 2<sup>52</sup> (golden if below ${C.GOLDEN_CHANCE})</th><td>${s.g.toFixed(8)} → ${s.golden ? 'golden' : 'normal'}</td></tr>
-            ${s.golden ? `<tr><th>Golden multiplier: ${mult(s.popPoint)}<sup>${C.GOLDEN_SPEED}</sup>, capped at ${mult(C.GOLDEN_CAP)}</th><td>${mult(Math.floor(s.finalMultiplier * 100 + 1e-9) / 100)}</td></tr>` : ''}
+            ${s.golden ? `<tr><th>Golden balloon: same pop point, filled ${C.GOLDEN_SPEED}× faster</th><td>${mult(s.popPoint)}</td></tr>` : ''}
           </table>
         </div>`;
     }).join('');

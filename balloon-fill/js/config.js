@@ -35,11 +35,10 @@ window.BF = window.BF || {};
 
     // Golden Balloon: each balloon independently has GOLDEN_CHANCE of turning
     // golden, revealed only after bets lock. It has exactly the same pop odds as
-    // a normal balloon and inflates GOLDEN_SPEED× faster, so it reaches the same
-    // pop point sooner. If it reaches GOLDEN_CAP it pays out there.
+    // a normal balloon (same pop point, same maximum) and inflates GOLDEN_SPEED×
+    // faster, so it reaches the same pop point sooner.
     GOLDEN_CHANCE: 0.01,
     GOLDEN_SPEED: 1.5,
-    GOLDEN_CAP: 10,
 
     MAX_MULTIPLIER: 10000,
 

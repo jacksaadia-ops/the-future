@@ -28,8 +28,8 @@ test('pop point never drops below 1.00x and follows k / x', () => {
   assert.ok(Math.abs(over2 / n - k / 2) < 0.01, `P(>=2) was ${over2 / n}, expected ${k / 2}`);
 });
 
-test('golden balloons pop at the same multiplier as normal ones, just sooner, and stop at the cap', () => {
-  for (const p of [1, 1.5, 4, 9.99]) {
+test('golden balloons pop at the same multiplier as normal ones, just sooner, with no lower cap', () => {
+  for (const p of [1, 1.5, 4, 9.99, 25, 500]) {
     const normal = buildBalloon(p, false);
     const golden = buildBalloon(p, true);
     assert.equal(golden.popMultiplier, normal.popMultiplier);
@@ -38,8 +38,8 @@ test('golden balloons pop at the same multiplier as normal ones, just sooner, an
   }
   const golden = buildBalloon(4, true);
   assert.equal(golden.speed, C.GOLDEN_SPEED);
-  assert.equal(golden.maxMultiplier, C.GOLDEN_CAP);
-  assert.equal(buildBalloon(500, true).popMultiplier, C.GOLDEN_CAP);
+  assert.equal(golden.maxMultiplier, C.MAX_MULTIPLIER);
+  assert.equal(buildBalloon(500, true).popMultiplier, 500);
 });
 
 test('each round has one outcome per balloon; golden is independent per balloon', () => {

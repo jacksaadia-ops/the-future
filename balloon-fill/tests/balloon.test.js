@@ -67,20 +67,13 @@ test('manual cash-out floors to cents and only while filling', () => {
   assert.equal(late.slot.status, 'lost');
 });
 
-test('golden balloon pays the cap to everyone still in', () => {
-  const { slot, events, at } = activeBet(1000, { golden: true, amount: 5 });
-  at(timeFor(C.GOLDEN_CAP, C.GOLDEN_SPEED) + 1);
-  assert.deepEqual(events[0][1], { won: true, multiplier: C.GOLDEN_CAP, payout: 5 * C.GOLDEN_CAP, auto: true, capped: true });
-});
-
-test('golden balloon honours a lower auto target and ignores a higher one', () => {
-  const low = activeBet(1000, { golden: true, auto: 3 });
-  low.at(timeFor(C.GOLDEN_CAP, C.GOLDEN_SPEED));
-  assert.equal(low.slot.result.multiplier, 3);
-
-  const high = activeBet(1000, { golden: true, auto: 50 });
-  high.at(timeFor(C.GOLDEN_CAP, C.GOLDEN_SPEED));
-  assert.equal(high.slot.result.multiplier, C.GOLDEN_CAP);
+test('golden balloon keeps going past 10x and honours high auto targets', () => {
+  const { slot, balloon, at } = activeBet(1000, { golden: true, auto: 50 });
+  at(balloon.timeFor(20)); // real time, including the long-flight speed-up
+  assert.equal(slot.status, 'active');
+  assert.ok(balloon.multiplier > 10);
+  at(balloon.timeFor(50));
+  assert.deepEqual(slot.result, { won: true, multiplier: 50, payout: 500, auto: true, capped: false });
 });
 
 test('golden balloon pops at the same multiplier a normal one would, just sooner', () => {

@@ -9,7 +9,7 @@
  * - lock:    the provider derives the result from the server seed + client seeds.
  * - reveal:  bets are locked; golden balloons are revealed.
  * - flying:  both balloons inflate from the same instant; each pops (or hits
- *            its cap) independently. Ends when every balloon has finished.
+ *            the maximum) independently. Ends when every balloon has finished.
  * - ended:   results shown, then the next betting window opens.
  *
  * Events: 'betting' {roundNo, closesAt, commitment}, 'locked' {roundNo, balloons},

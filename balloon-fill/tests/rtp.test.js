@@ -15,9 +15,9 @@ test('normal balloons return k at any target', () => {
   }
 });
 
-test('golden balloons return the same k at every target, including the cap and above', () => {
+test('golden balloons return the same k at every target', () => {
   const k = BF.outcome.survivalConstant(C.RTP);
-  for (const target of [2, 5, 9.99, C.GOLDEN_CAP, 1000]) {
+  for (const target of [2, 5, 10, 50]) {
     const r = rtpFor(true, target, N);
     assert.ok(Math.abs(r - k) < 0.03, `golden target ${target}: ${r} vs ${k}`);
   }
@@ -41,7 +41,7 @@ test('a golden balloon reaches 10x exactly as often as a normal one (k / 10)', (
 
 test('overall return matches every operator RTP setting', () => {
   for (const rtp of C.RTP_OPTIONS) {
-    const r = blended(N * 4, 2, C.GOLDEN_CAP, rtp);
+    const r = blended(N * 4, 2, 10, rtp);
     assert.ok(Math.abs(r - rtp) < 0.012, `setting ${rtp}: simulated ${r}`);
     assert.ok(r < 1, 'house always keeps an edge');
   }

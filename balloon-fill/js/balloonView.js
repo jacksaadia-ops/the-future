@@ -27,7 +27,7 @@
       this.r = refs(this.el);
       this.r.num.textContent = index + 1;
       const C = BF.CONFIG;
-      this.r.goldenBanner.innerHTML = `★ Golden · ${C.GOLDEN_SPEED}× speed<span> · max ${C.GOLDEN_CAP}x</span>`;
+      this.r.goldenBanner.innerHTML = `★ Golden<span> · ${C.GOLDEN_SPEED}× speed</span>`;
       this.r.balloon.innerHTML = BF.balloonSVG(`slot${index}`);
       this.r.bet.value = bet.toFixed(2);
       this.r.auto.value = auto.toFixed(2);

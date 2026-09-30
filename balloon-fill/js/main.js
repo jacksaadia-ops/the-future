@@ -102,7 +102,7 @@
             BF.sound.vibrate([20, 40, 20, 40, 20]);
             const c = this.views[i].center;
             for (let k = 0; k < 12; k++) this.particles.glitter(c.x, c.y, c.radius * 1.4);
-            this.toast(`★ Balloon ${i + 1} is GOLDEN — it climbs ${C.GOLDEN_SPEED}× faster with the same chance to pop. Max ${C.GOLDEN_CAP}x.`, 'gold');
+            this.toast(`★ Balloon ${i + 1} is GOLDEN — it fills ${C.GOLDEN_SPEED}× faster with the same chance to pop.`, 'gold');
           }
         });
         this.save();

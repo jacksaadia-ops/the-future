@@ -58,12 +58,13 @@ test('golden is only revealed when bets lock', async () => {
   assert.equal(engine.balloons[0].golden, true);
 });
 
-test('a golden balloon that survives to the cap ends as "maxed"', async () => {
-  const { engine, log } = await engineWith([buildBalloon(500, true), buildBalloon(1, false)]);
+test('a golden balloon that survives to the maximum ends as "maxed"', async () => {
+  const { engine, log } = await engineWith([buildBalloon(C.MAX_MULTIPLIER, true), buildBalloon(1, false)]);
   const launch = C.BETTING_MS + C.REVEAL_MS;
-  await advance(engine, launch + timeFor(C.GOLDEN_CAP, C.GOLDEN_SPEED) + 1);
+  const end = new BF.SharedBalloon(0, buildBalloon(C.MAX_MULTIPLIER, true)).endTimeMs; // real time, with the speed-up
+  await advance(engine, launch + end + 1);
   assert.equal(engine.balloons[0].state, 'maxed');
-  assert.equal(engine.balloons[0].multiplier, C.GOLDEN_CAP);
+  assert.equal(engine.balloons[0].multiplier, C.MAX_MULTIPLIER);
   assert.ok(log.includes('end0:maxed'));
 });
 

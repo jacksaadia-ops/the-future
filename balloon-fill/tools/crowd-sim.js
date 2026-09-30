@@ -81,8 +81,8 @@ function runSession(players, rounds) {
     let roundPaid = 0;
     for (const bet of bets) {
       const b = shared[bet.balloon];
-      // After the golden reveal, half the players on that balloon raise their target to the cap.
-      const target = b.golden && Math.random() < 0.5 ? G.CONFIG.GOLDEN_CAP : bet.target;
+      // After the golden reveal, half the players on that balloon raise their target to 10x.
+      const target = b.golden && Math.random() < 0.5 ? 10 : bet.target;
       const slot = new G.BetSlot(bet.balloon);
       slot.place(bet.amount, target);
       slot.activate();
@@ -124,7 +124,7 @@ console.log(`  Total paid out     ${money(one.paid)}`);
 console.log(`  House profit       ${money(one.profit)}  (${pct(one.profit / one.wagered)} of wagers)`);
 console.log(`  Winning bets       ${one.wins.toLocaleString('en-US')} (${pct(one.wins / one.bets)})`);
 console.log(`  Rounds house lost  ${one.roundsHouseLost} of ${ROUNDS}`);
-console.log(`  Golden balloons    ${one.goldens} (${one.goldenMaxed} reached the ${C.GOLDEN_CAP}x cap)`);
+console.log(`  Golden balloons    ${one.goldens} (${one.goldenMaxed} reached the ${C.MAX_MULTIPLIER}x maximum)`);
 console.log(`  Biggest payout     ${money(one.biggestPayout)} at ${one.biggestMultiplier.toFixed(2)}x`);
 console.log('  By player type:');
 for (const [name, v] of Object.entries(one.byProfile)) {

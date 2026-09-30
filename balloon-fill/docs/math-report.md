@@ -1,6 +1,6 @@
 # Balloon Fill — Game Math Report (PAR sheet)
 
-Generated 2026-09-30 by `tools/math-report.js` from code version `bf0d46b (with uncommitted changes)`.
+Generated 2026-09-30 by `tools/math-report.js` from code version `bc78a2e (with uncommitted changes)`.
 All theoretical values are computed exactly from the game code; simulated values run the real settlement code.
 Simulation size: 2,000,000 balloons per RTP setting.
 
@@ -27,7 +27,6 @@ multiplier at which it is cashed out (manually or by auto cash-out) before its b
 | Maximum multiplier | 10,000x (balloon pays out at this value if it survives) |
 | Golden chance | 1.00% per balloon, independent, revealed only after bets lock |
 | Golden speed | 1.5× (same pop point and odds as a normal balloon; it gets there sooner) |
-| Golden cap | 10.00x (paid automatically to every bet still in) |
 | Bet limits | 0.10 – 10,000 per balloon |
 | Round timing | betting 6 s, lock/reveal 1 s, results 2 s |
 | Random source | Provably fair: SHA-256(serverSeed : clientSeed1 : clientSeed2 : clientSeed3 : balloonIndex); first 52 bits → pop point, next 52 bits → golden. Server seed from a CSPRNG, committed by its SHA-256 before betting opens. Runs client-side in this build. |
@@ -41,10 +40,9 @@ For each balloon a uniform U in [0, 1) — the first 52 bits of the balloon's pr
 so for any target x on the 0.01 grid (x ≥ 1.01):  **P(balloon reaches x) = k / x**, and cashing out at x returns
 **x · k / x = k** regardless of x. Pop points below 1.01x pop instantly (rate 1 − k/1.01).
 
-A golden balloon draws its pop point P exactly the same way and pops at the same multiplier P; it only inflates
-1.5× faster, so it reaches P sooner. If P ≥ 10.00x it stops at the cap and every bet still in is paid
-10.00x, so a golden target y returns k for y ≤ cap, and any higher target is paid at the cap (also k).
-The chance of reaching any multiplier is therefore identical for golden and normal balloons.
+A golden balloon draws its pop point P exactly the same way, pops at the same multiplier P and has the same maximum;
+it only inflates 1.5× faster, so it reaches P sooner. The chance of reaching any multiplier is therefore
+identical for golden and normal balloons.
 
 k is the operator RTP, so every cash-out target on every balloon returns exactly the configured RTP:
 
@@ -54,10 +52,10 @@ k is the operator RTP, so every cash-out target on every balloon returns exactly
 
 | RTP setting | k (return, any target) | Instant-pop rate | Theory | Simulated, 95% CI | Lowest possible play |
 | --- | --- | --- | --- | --- | --- |
-| 94% | 94.000% | 6.931% | 94.0000% | 93.933% ± 0.140% | 93.069% |
-| 95.5% | 95.500% | 5.446% | 95.5000% | 95.376% ± 0.140% | 94.554% |
-| 96% | 96.000% | 4.950% | 96.0000% | 95.932% ± 0.140% | 95.050% |
-| 97% | 97.000% | 3.960% | 97.0000% | 97.066% ± 0.140% | 96.040% |
+| 94% | 94.000% | 6.931% | 94.0000% | 94.087% ± 0.140% | 93.069% |
+| 95.5% | 95.500% | 5.446% | 95.5000% | 95.658% ± 0.140% | 94.554% |
+| 96% | 96.000% | 4.950% | 96.0000% | 95.858% ± 0.140% | 95.050% |
+| 97% | 97.000% | 3.960% | 97.0000% | 97.028% ± 0.141% | 96.040% |
 
 - **Theory**: every auto cash-out target, on golden and normal balloons, returns k. Simulated with a 2.00x target on normal
   balloons and a 5.00x target on golden ones.
@@ -86,8 +84,7 @@ k = 0.955000.
 | 1000.00x | 0.096% | 1 in 1,047 | 95.500% | 30.888 |
 | 10000.00x | 0.010% | 1 in 10,471 | 95.500% | 97.719 |
 
-Golden balloons follow the same table up to the 10.00x cap; a golden target above the cap is paid at the cap with
-probability 9.550%, returning the same k.
+Golden balloons follow exactly the same table.
 
 ### 5.2 Pop-point distribution (golden and normal balloons)
 
@@ -106,7 +103,7 @@ probability 9.550%, returning the same k.
 
 - Per balloon: 1.00% (1 in 100).
 - Per round (at least one of 2): 1.99%.
-- Golden balloon reaching the 10.00x cap: 9.550% of golden balloons (the same as a normal balloon reaching 10.00x).
+- Golden balloon reaching 10.00x: 9.550% of golden balloons (the same as a normal balloon).
 - Golden status is drawn independently for every balloon, so past rounds carry no information about future ones.
 
 ## 6. Round timing (from 200,000 simulated rounds)
@@ -114,7 +111,7 @@ probability 9.550%, returning the same k.
 | Measure | Value |
 | --- | --- |
 | Fixed time per round (betting + reveal + results) | 9.0 s |
-| Flight time (until both balloons finish) — mean / median / 95th percentile | 10.0 s / 9.8 s / 19.0 s |
+| Flight time (until both balloons finish) — mean / median / 95th percentile | 10.0 s / 9.7 s / 19.0 s |
 | Mean round length | 19.0 s |
 | Rounds per hour | ~189 |
 

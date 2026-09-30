@@ -133,7 +133,6 @@ function build() {
   L(`| Maximum multiplier | ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (balloon pays out at this value if it survives) |`);
   L(`| Golden chance | ${pct(C.GOLDEN_CHANCE, 2)} per balloon, independent, revealed only after bets lock |`);
   L(`| Golden speed | ${C.GOLDEN_SPEED}× (same pop point and odds as a normal balloon; it gets there sooner) |`);
-  L(`| Golden cap | ${fx(C.GOLDEN_CAP)} (paid automatically to every bet still in) |`);
   L(`| Bet limits | ${C.MIN_BET.toFixed(2)} – ${C.MAX_BET.toLocaleString('en-US')} per balloon |`);
   L(`| Round timing | betting ${C.BETTING_MS / 1000} s, lock/reveal ${C.REVEAL_MS / 1000} s, results ${C.ROUND_END_MS / 1000} s |`);
   L('| Random source | Provably fair: SHA-256(serverSeed : clientSeed1 : clientSeed2 : clientSeed3 : balloonIndex); first 52 bits → pop point, next 52 bits → golden. Server seed from a CSPRNG, committed by its SHA-256 before betting opens. Runs client-side in this build. |');
@@ -148,10 +147,9 @@ function build() {
   L('so for any target x on the 0.01 grid (x ≥ 1.01):  **P(balloon reaches x) = k / x**, and cashing out at x returns');
   L('**x · k / x = k** regardless of x. Pop points below 1.01x pop instantly (rate 1 − k/1.01).');
   L();
-  L(`A golden balloon draws its pop point P exactly the same way and pops at the same multiplier P; it only inflates`);
-  L(`${C.GOLDEN_SPEED}× faster, so it reaches P sooner. If P ≥ ${fx(C.GOLDEN_CAP)} it stops at the cap and every bet still in is paid`);
-  L(`${fx(C.GOLDEN_CAP)}, so a golden target y returns k for y ≤ cap, and any higher target is paid at the cap (also k).`);
-  L('The chance of reaching any multiplier is therefore identical for golden and normal balloons.');
+  L(`A golden balloon draws its pop point P exactly the same way, pops at the same multiplier P and has the same maximum;`);
+  L(`it only inflates ${C.GOLDEN_SPEED}× faster, so it reaches P sooner. The chance of reaching any multiplier is therefore`);
+  L('identical for golden and normal balloons.');
   L();
   L('k is the operator RTP, so every cash-out target on every balloon returns exactly the configured RTP:');
   L();
@@ -187,8 +185,7 @@ function build() {
     L(`| ${fx(x)} | ${pct(p)} | ${oneIn(p)} | ${pct(x * p)} | ${Math.sqrt(x * x * p - (x * p) ** 2).toFixed(3)} |`);
   }
   L();
-  L(`Golden balloons follow the same table up to the ${fx(C.GOLDEN_CAP)} cap; a golden target above the cap is paid at the cap with`);
-  L(`probability ${pct(pReach(C.GOLDEN_CAP, main.k))}, returning the same k.`);
+  L('Golden balloons follow exactly the same table.');
   L();
   L('### 5.2 Pop-point distribution (golden and normal balloons)');
   L();
@@ -201,7 +198,7 @@ function build() {
   L();
   L(`- Per balloon: ${pct(C.GOLDEN_CHANCE, 2)} (${oneIn(C.GOLDEN_CHANCE)}).`);
   L(`- Per round (at least one of ${C.BALLOONS}): ${pct(1 - (1 - C.GOLDEN_CHANCE) ** C.BALLOONS, 2)}.`);
-  L(`- Golden balloon reaching the ${fx(C.GOLDEN_CAP)} cap: ${pct(pReach(C.GOLDEN_CAP, main.k))} of golden balloons (the same as a normal balloon reaching ${fx(C.GOLDEN_CAP)}).`);
+  L(`- Golden balloon reaching 10.00x: ${pct(pReach(10, main.k))} of golden balloons (the same as a normal balloon).`);
   L('- Golden status is drawn independently for every balloon, so past rounds carry no information about future ones.');
   L();
 

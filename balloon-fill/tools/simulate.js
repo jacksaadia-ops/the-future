@@ -55,7 +55,7 @@ if (require.main === module) {
   const targets = [1.5, 2, 5, 10];
 
   console.log(`Balloon Fill payout simulation — ${n.toLocaleString()} balloons per figure`);
-  console.log(`Golden: ${C.GOLDEN_CHANCE * 100}% chance per balloon, ${C.GOLDEN_SPEED}x speed, same odds, max ${C.GOLDEN_CAP}x\n`);
+  console.log(`Golden: ${C.GOLDEN_CHANCE * 100}% chance per balloon, ${C.GOLDEN_SPEED}x speed, same odds\n`);
 
   for (const rtp of C.RTP_OPTIONS) {
     const k = survivalConstant(rtp);
@@ -64,6 +64,6 @@ if (require.main === module) {
     for (const t of targets) {
       console.log(`  ${(t.toFixed(2) + 'x').padEnd(8)}${pct(rtpFor(false, t, n, rtp))}  ${pct(rtpFor(true, t, n / 4, rtp))}`);
     }
-    console.log(`  Overall, 2x target, golden held to cap: ${pct(blended(n * 2, 2, C.GOLDEN_CAP, rtp))}  (theory ${pct(rtp)})\n`);
+    console.log(`  Overall, 2x target, golden at 10x: ${pct(blended(n * 2, 2, 10, rtp))}  (theory ${pct(rtp)})\n`);
   }
 }

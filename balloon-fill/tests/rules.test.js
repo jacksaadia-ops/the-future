@@ -9,7 +9,7 @@ test('rules quote the configured RTP and limits', () => {
   for (const rtp of C.RTP_OPTIONS) {
     const html = BF.rules.html(rtp);
     assert.ok(html.includes(`${(rtp * 100).toFixed(2)}%`), `RTP ${rtp} missing`);
-    assert.ok(html.includes(`${C.GOLDEN_CAP.toFixed(2)}x`));
+    assert.ok(html.includes('same chance to pop'));
     assert.ok(html.includes(C.MAX_MULTIPLIER.toLocaleString('en-US')));
     assert.ok(html.includes('Malfunction voids all pays and plays'));
   }
