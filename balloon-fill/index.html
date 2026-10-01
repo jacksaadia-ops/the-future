@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0716" />
+  <title>Balloon Fill</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Unbounded:wght@800&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 36'%3E%3Ccircle cx='15' cy='18' r='13' fill='%23ff2e88'/%3E%3Ccircle cx='29' cy='18' r='13' fill='%231fc8ff' stroke='%230a0716' stroke-width='3' paint-order='stroke'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Full-screen particle layer (pop shards, coins, sparkles) -->
+  <canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+  <div class="app">
+    <!-- ───────────── Top bar ───────────── -->
+    <header class="topbar">
+      <div class="brand">
+        <!-- Twin Balloons mark: the game's two balloons, tied together -->
+        <svg class="brand-mark" viewBox="-18 -8 196 178" aria-hidden="true">
+          <defs>
+            <radialGradient id="brand-pink" cx="36%" cy="30%" r="78%">
+              <stop offset="0" stop-color="#ffd1e6" /><stop offset="0.42" stop-color="#ff2e88" /><stop offset="1" stop-color="#7d0a41" />
+            </radialGradient>
+            <radialGradient id="brand-cyan" cx="36%" cy="30%" r="78%">
+              <stop offset="0" stop-color="#d2f7ff" /><stop offset="0.42" stop-color="#1fc8ff" /><stop offset="1" stop-color="#064b73" />
+            </radialGradient>
+          </defs>
+          <path d="M55 114Q62 142 80 166" stroke="#ff8cc3" stroke-width="4" fill="none" stroke-linecap="round" />
+          <path d="M105 114Q98 142 80 166" stroke="#7fe3ff" stroke-width="4" fill="none" stroke-linecap="round" />
+          <g transform="translate(5 0) rotate(-14 50 110)">
+            <path d="M50 4C77 4 94 25 94 50C94 78 72 100 53 106H47C28 100 6 78 6 50C6 25 23 4 50 4Z" fill="url(#brand-pink)" />
+            <ellipse cx="33" cy="30" rx="9" ry="16" transform="rotate(-28 33 30)" fill="#fff" opacity="0.5" />
+            <path d="M44 105H56L58 113Q50 115 42 113Z" fill="#7d0a41" />
+          </g>
+          <g transform="translate(55 0) rotate(14 50 110)">
+            <path d="M50 4C77 4 94 25 94 50C94 78 72 100 53 106H47C28 100 6 78 6 50C6 25 23 4 50 4Z" fill="url(#brand-cyan)" stroke="#0a0716" stroke-width="5" paint-order="stroke" />
+            <ellipse cx="33" cy="30" rx="9" ry="16" transform="rotate(-28 33 30)" fill="#fff" opacity="0.5" />
+            <path d="M44 105H56L58 113Q50 115 42 113Z" fill="#064b73" />
+          </g>
+          <circle cx="80" cy="166" r="5" fill="#f3efff" />
+        </svg>
+        <span class="brand-name">Balloon <span class="fi">Fi</span><span class="ll">ll</span></span>
+      </div>
+
+      <div class="top-stats">
+        <div class="chip streak-chip" id="streak-chip" title="Current win streak (best in brackets)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z" fill="currentColor"/></svg>
+          <span><b id="streak-value">0</b> streak</span>
+          <small id="streak-best">best 0</small>
+        </div>
+        <div class="chip level-chip" title="Player level">
+          <span>LV</span><b id="level-chip-value">1</b>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="balance" id="balance-box">
+          <span class="balance-label">Balance</span>
+          <span class="balance-value" id="balance-value">$0.00</span>
+        </div>
+        <button class="btn-refill hidden" id="refill-btn" type="button">Free chips</button>
+        <div class="top-icons">
+        <button class="howto-btn" id="howto-btn" type="button" aria-label="How to play" title="How to play"><svg viewBox="0 0 24 24"><path d="M4 5.5C6.5 4.3 9.3 4.4 12 6c2.7-1.6 5.5-1.7 8-.5v13c-2.5-1.2-5.3-1.1-8 .5-2.7-1.6-5.5-1.7-8-.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v13" stroke="currentColor" stroke-width="2"/></svg><span>How to play</span></button>
+        <button class="icon-btn fair-btn" id="fair-btn" type="button" aria-label="Provably fair" title="Provably fair">
+          <svg viewBox="0 0 24 24"><path d="M12 2 20 5.5v6c0 5-3.4 9.2-8 10.5C7.4 20.7 4 16.5 4 11.5v-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="icon-btn" id="rules-btn" type="button" aria-label="Game rules and payouts" title="Rules &amp; payouts">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.3" r="1.2" fill="currentColor"/></svg>
+        </button>
+        <button class="icon-btn" id="sound-btn" type="button" aria-label="Toggle sound" aria-pressed="true">
+          <svg class="ico-on" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          <svg class="ico-off" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ───────────── Game + feed ───────────── -->
+    <main class="layout">
+      <section class="game" aria-label="Balloons">
+        <div class="round-bar" id="round-bar">
+          <span class="round-no" id="round-no">Round #1</span>
+          <span class="round-phase" id="round-phase">Place your bets</span>
+          <div class="round-progress"><div class="round-progress-fill" id="round-progress"></div></div>
+        </div>
+        <div class="balloons" id="balloons"></div>
+
+        <div class="bigbar">
+          <button class="btn-big" id="big-btn" type="button">
+            <span class="big-label" id="big-label">Bet on Both</span>
+            <span class="big-sub" id="big-sub">Total bet $20.00</span>
+          </button>
+          <p class="hint">Bet on one balloon or both · Space = main button · <kbd>1</kbd> / <kbd>2</kbd> = bet or cash out a balloon</p>
+        </div>
+      </section>
+
+      <aside class="panel feed" aria-label="Live feed">
+        <div class="panel-head">
+          <h2><span class="live-dot"></span>Demo Feed</h2>
+          <span class="online" title="Other players in this demo are simulated. Your own bets are real."><b id="online-count">1,284</b> simulated players</span>
+        </div>
+        <ul class="feed-list" id="feed-list" aria-live="off"></ul>
+      </aside>
+    </main>
+
+    <!-- ───────────── Progress ───────────── -->
+    <section class="panel progress" aria-label="Player progress">
+      <div class="level-badge"><small>Level</small><b id="level-value">1</b></div>
+      <div class="xp">
+        <div class="xp-top">
+          <span>Experience</span>
+          <span id="xp-text">0 / 120 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+        <div class="xp-next" id="next-perk">Next reward: —</div>
+      </div>
+      <ul class="perks" id="perk-list"></ul>
+    </section>
+
+    <!-- ───────────── Rewards ───────────── -->
+    <section class="rewards" aria-label="Rewards">
+      <div class="panel reward-card bonus-card">
+        <div class="panel-head">
+          <h2>Daily Bonus</h2>
+          <span class="muted" id="bonus-streak">Day 1</span>
+        </div>
+        <div class="bonus-caption" id="bonus-caption">Today's bonus</div>
+        <div class="bonus-amount" id="bonus-amount">$100.00</div>
+        <div class="bonus-days" id="bonus-days" aria-hidden="true"></div>
+        <button class="btn-claim" id="bonus-btn" type="button">Claim bonus</button>
+      </div>
+
+      <div class="panel reward-card">
+        <div class="panel-head">
+          <h2>Daily Missions</h2>
+          <span class="muted">Reset at midnight</span>
+        </div>
+        <ul class="missions" id="mission-list"></ul>
+      </div>
+
+      <div class="panel reward-card">
+        <div class="panel-head"><h2>Your Records</h2></div>
+        <dl class="records" id="records"></dl>
+      </div>
+
+      <div class="panel reward-card">
+        <div class="panel-head">
+          <h2>Biggest Wins</h2>
+          <span class="muted">This session</span>
+        </div>
+        <ol class="top-wins" id="top-wins"></ol>
+      </div>
+    </section>
+
+    <!-- ───────────── Skins ───────────── -->
+    <section class="panel skins" aria-label="Balloon skins">
+      <div class="panel-head">
+        <h2>Balloon Skins</h2>
+        <span class="muted">Level up to unlock · equip on either balloon</span>
+      </div>
+      <div class="skin-grid" id="skin-grid"></div>
+    </section>
+
+    <footer class="foot">
+      <button class="link-btn" id="howto-link" type="button">How to play</button> ·
+      <button class="link-btn" id="rules-link" type="button">Rules &amp; payouts</button> ·
+      <button class="link-btn" id="fair-link" type="button">Provably fair</button> ·
+      Play-money demo · Shared rounds: bets lock after a 6-second window, then both balloons fill · Every balloon has a 1% chance to turn golden after bets lock: 1.5× speed, same chance to pop · RTP <span id="rtp-value">95.5%</span>.
+      <button class="link-btn" id="reset-btn" type="button">Reset progress</button>
+    </footer>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <dialog class="rules-dialog fair-dialog" id="fair-dialog" aria-labelledby="fair-title">
+    <div class="rules-head">
+      <h2 id="fair-title">Provably Fair</h2>
+      <button class="icon-btn" id="fair-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rules-body" id="fair-body"></div>
+  </dialog>
+
+  <dialog class="rules-dialog" id="howto-dialog" aria-labelledby="howto-title">
+    <div class="rules-head">
+      <h2 id="howto-title">How to Play</h2>
+      <button class="icon-btn" id="howto-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rules-body" id="howto-body"></div>
+  </dialog>
+
+  <dialog class="rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
+    <div class="rules-head">
+      <h2 id="rules-title">Rules &amp; Payouts</h2>
+      <button class="icon-btn" id="rules-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="rules-body" id="rules-body"></div>
+  </dialog>
+
+  <!-- Balloon card template (cloned once per balloon slot) -->
+  <template id="balloon-card-tpl">
+    <section class="panel balloon-card">
+      <header class="card-head">
+        <span class="slot-label">Balloon <b data-ref="num"></b></span>
+        <span class="crowd" data-ref="crowd"></span>
+        <div class="history" data-ref="history"></div>
+      </header>
+      <div class="stage" data-ref="stage">
+        <div class="stage-glow"></div>
+        <div class="golden-banner" data-ref="goldenBanner"></div>
+        <div class="mult" data-ref="mult">1.00x</div>
+        <div class="phase-pill" data-ref="phasePill"></div>
+        <div class="result" data-ref="result"></div>
+        <div class="cash-badge" data-ref="badge"></div>
+        <div class="balloon-wrap" data-ref="wrap">
+          <div class="balloon" data-ref="balloon"></div>
+        </div>
+        <div class="pump" aria-hidden="true">
+          <div class="pump-nozzle"></div>
+          <div class="pump-base"><span data-ref="pumpLight"></span></div>
+          <div class="pump-barrel"><div class="pump-rod"></div></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <label data-ref="betLabel">Bet</label>
+          <div class="input-row">
+            <span class="affix">$</span>
+            <input data-ref="bet" type="number" inputmode="decimal" min="0.10" step="0.10" />
+            <button type="button" class="mini-btn" data-ref="half">½</button>
+            <button type="button" class="mini-btn" data-ref="double">2×</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Auto cash out</label>
+          <div class="input-row">
+            <label class="toggle"><input type="checkbox" data-ref="autoOn" /><span></span></label>
+            <input data-ref="auto" type="number" inputmode="decimal" min="1.01" step="0.01" />
+            <span class="affix">x</span>
+          </div>
+        </div>
+        <div class="autobet" data-ref="autoBetRow">
+          <label class="toggle"><input type="checkbox" data-ref="autoBetOn" aria-label="Auto bet" /><span></span></label>
+          <span class="autobet-label">Auto bet</span>
+          <input class="autobet-rounds" data-ref="autoBetRounds" type="number" inputmode="numeric" min="1" max="100" step="1" value="10" aria-label="Auto bet rounds" />
+          <span class="autobet-label rounds-word">rounds</span>
+          <span class="autobet-left" data-ref="autoBetLeft"></span>
+        </div>
+        <button type="button" class="btn-action" data-ref="action">
+          <span class="action-label" data-ref="actionLabel">Place Bet</span>
+          <span class="action-sub" data-ref="actionSub"></span>
+        </button>
+      </div>
+    </section>
+  </template>
+
+  <!-- Classic scripts (no build step; works from file://). Order matters. -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/outcome.js"></script>
+  <script src="js/fair.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/skins.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/rewards.js"></script>
+  <script src="js/wallet.js"></script>
+  <script src="js/round.js"></script>
+  <script src="js/balloon.js"></script>
+  <script src="js/balloonView.js"></script>
+  <script src="js/feed.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/fairView.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
