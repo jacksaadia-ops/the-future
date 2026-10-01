@@ -1,6 +1,6 @@
 # Balloon Fill — Game Math Report (PAR sheet)
 
-Generated 2026-09-30 by `tools/math-report.js` from code version `bc78a2e (with uncommitted changes)`.
+Generated 2026-10-01 by `tools/math-report.js` from code version `abd1f57 (with uncommitted changes)`.
 All theoretical values are computed exactly from the game code; simulated values run the real settlement code.
 Simulation size: 2,000,000 balloons per RTP setting.
 
@@ -18,7 +18,7 @@ multiplier at which it is cashed out (manually or by auto cash-out) before its b
 
 | Parameter | Value |
 | --- | --- |
-| RTP settings offered | 94%, 95.5%, 96%, 97% (default 95.5%) |
+| RTP settings offered | 95%, 96%, 97%, 98% (default 96%) |
 | Balloons per round | 2, independent outcomes |
 | Multiplier curve | m(t) = e^(0.00012 × speed × t), t in ms; normal reaches 2x in 5.78 s |
 | Long-flight speed-up | above 5x the flight clock runs 3× faster (same mapping for every balloon; pop points and payouts unchanged) |
@@ -52,37 +52,37 @@ k is the operator RTP, so every cash-out target on every balloon returns exactly
 
 | RTP setting | k (return, any target) | Instant-pop rate | Theory | Simulated, 95% CI | Lowest possible play |
 | --- | --- | --- | --- | --- | --- |
-| 94% | 94.000% | 6.931% | 94.0000% | 94.087% ± 0.140% | 93.069% |
-| 95.5% | 95.500% | 5.446% | 95.5000% | 95.658% ± 0.140% | 94.554% |
-| 96% | 96.000% | 4.950% | 96.0000% | 95.858% ± 0.140% | 95.050% |
-| 97% | 97.000% | 3.960% | 97.0000% | 97.028% ± 0.141% | 96.040% |
+| 95% | 95.000% | 5.941% | 95.0000% | 94.929% ± 0.140% | 94.059% |
+| 96% | 96.000% | 4.950% | 96.0000% | 95.979% ± 0.140% | 95.050% |
+| 97% | 97.000% | 3.960% | 97.0000% | 97.065% ± 0.141% | 96.040% |
+| 98% | 98.000% | 2.970% | 98.0000% | 97.913% ± 0.141% | 97.030% |
 
 - **Theory**: every auto cash-out target, on golden and normal balloons, returns k. Simulated with a 2.00x target on normal
   balloons and a 5.00x target on golden ones.
 - **Lowest possible play**: manual cash-out at the very start (paid 1.00x after rounding down to the cent) returns k / 1.01.
   Manual cash-outs in general return between k/1.01 and k because the multiplier is rounded down to the cent.
 
-## 5. Detail for the default 95.5% setting
+## 5. Detail for the default 96% setting
 
-k = 0.955000.
+k = 0.960000.
 
 ### 5.1 Per cash-out target (bet of 1, golden or normal balloon)
 
 | Target | P(win) | Hit frequency | RTP | Std. deviation |
 | --- | --- | --- | --- | --- |
-| 1.01x | 94.554% | 1 in 1.06 | 95.500% | 0.229 |
-| 1.10x | 86.818% | 1 in 1.15 | 95.500% | 0.372 |
-| 1.25x | 76.400% | 1 in 1.31 | 95.500% | 0.531 |
-| 1.50x | 63.667% | 1 in 1.57 | 95.500% | 0.721 |
-| 2.00x | 47.750% | 1 in 2.09 | 95.500% | 0.999 |
-| 3.00x | 31.833% | 1 in 3.14 | 95.500% | 1.397 |
-| 5.00x | 19.100% | 1 in 5.24 | 95.500% | 1.965 |
-| 10.00x | 9.550% | 1 in 10 | 95.500% | 2.939 |
-| 20.00x | 4.775% | 1 in 21 | 95.500% | 4.265 |
-| 50.00x | 1.910% | 1 in 52 | 95.500% | 6.844 |
-| 100.00x | 0.955% | 1 in 105 | 95.500% | 9.726 |
-| 1000.00x | 0.096% | 1 in 1,047 | 95.500% | 30.888 |
-| 10000.00x | 0.010% | 1 in 10,471 | 95.500% | 97.719 |
+| 1.01x | 95.050% | 1 in 1.05 | 96.000% | 0.219 |
+| 1.10x | 87.273% | 1 in 1.15 | 96.000% | 0.367 |
+| 1.25x | 76.800% | 1 in 1.30 | 96.000% | 0.528 |
+| 1.50x | 64.000% | 1 in 1.56 | 96.000% | 0.720 |
+| 2.00x | 48.000% | 1 in 2.08 | 96.000% | 0.999 |
+| 3.00x | 32.000% | 1 in 3.13 | 96.000% | 1.399 |
+| 5.00x | 19.200% | 1 in 5.21 | 96.000% | 1.969 |
+| 10.00x | 9.600% | 1 in 10 | 96.000% | 2.946 |
+| 20.00x | 4.800% | 1 in 21 | 96.000% | 4.275 |
+| 50.00x | 1.920% | 1 in 52 | 96.000% | 6.861 |
+| 100.00x | 0.960% | 1 in 104 | 96.000% | 9.751 |
+| 1000.00x | 0.096% | 1 in 1,042 | 96.000% | 30.969 |
+| 10000.00x | 0.010% | 1 in 10,417 | 96.000% | 97.975 |
 
 Golden balloons follow exactly the same table.
 
@@ -90,20 +90,20 @@ Golden balloons follow exactly the same table.
 
 | Pops before | Probability |
 | --- | --- |
-| 1.01x | 5.446% |
-| 1.50x | 36.333% |
-| 2.00x | 52.250% |
-| 3.00x | 68.167% |
-| 5.00x | 80.900% |
-| 10.00x | 90.450% |
-| 100.00x | 99.045% |
-| (median pop point) | 1.91x |
+| 1.01x | 4.950% |
+| 1.50x | 36.000% |
+| 2.00x | 52.000% |
+| 3.00x | 68.000% |
+| 5.00x | 80.800% |
+| 10.00x | 90.400% |
+| 100.00x | 99.040% |
+| (median pop point) | 1.92x |
 
 ### 5.3 Golden frequency
 
 - Per balloon: 1.00% (1 in 100).
 - Per round (at least one of 2): 1.99%.
-- Golden balloon reaching 10.00x: 9.550% of golden balloons (the same as a normal balloon).
+- Golden balloon reaching 10.00x: 9.600% of golden balloons (the same as a normal balloon).
 - Golden status is drawn independently for every balloon, so past rounds carry no information about future ones.
 
 ## 6. Round timing (from 200,000 simulated rounds)
@@ -111,13 +111,13 @@ Golden balloons follow exactly the same table.
 | Measure | Value |
 | --- | --- |
 | Fixed time per round (betting + reveal + results) | 9.0 s |
-| Flight time (until both balloons finish) — mean / median / 95th percentile | 10.0 s / 9.7 s / 19.0 s |
-| Mean round length | 19.0 s |
+| Flight time (until both balloons finish) — mean / median / 95th percentile | 10.1 s / 9.8 s / 19.0 s |
+| Mean round length | 19.1 s |
 | Rounds per hour | ~189 |
 
 ## 7. Exposure
 
-- Maximum multiplier on a normal balloon: 10,000x (probability 0.0095% per balloon).
+- Maximum multiplier on a normal balloon: 10,000x (probability 0.0096% per balloon).
 - Maximum single payout at the current bet limit: 100,000,000 (bet 10,000 × 10,000x).
 - **Recommendation:** add an operator-configurable maximum win per bet (a common requirement for operators),
   and state it in the game rules. Capping winnings reduces RTP slightly for the highest targets; this report must then be regenerated.
