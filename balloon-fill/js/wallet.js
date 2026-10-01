@@ -1,24 +1,26 @@
 /**
- * Player balance. All money math is rounded to cents here. A real backend
- * would make this a thin client over authoritative server balances.
+ * Player balance, kept in integer units of 1/10,000 dollar so a cent stake ×
+ * a 2-decimal multiplier is always paid exactly (never rounded to the cent).
+ * A real backend would make this a thin client over authoritative server balances.
  */
 (function () {
-  const { Emitter, round2 } = BF.util;
+  const { Emitter, toUnits, SCALE } = BF.util;
 
   class Wallet extends Emitter {
     constructor(balance) {
       super();
-      this.balance = round2(balance);
+      this.units = toUnits(balance);
     }
-    canAfford(amount) { return amount <= this.balance + 1e-9; }
+    get balance() { return this.units / SCALE; }
+    canAfford(amount) { return toUnits(amount) <= this.units; }
     debit(amount) {
       if (!this.canAfford(amount)) return false;
-      this.balance = round2(this.balance - amount);
+      this.units -= toUnits(amount);
       this.emit('change', { balance: this.balance, delta: -amount });
       return true;
     }
     credit(amount) {
-      this.balance = round2(this.balance + amount);
+      this.units += toUnits(amount);
       this.emit('change', { balance: this.balance, delta: amount });
     }
   }

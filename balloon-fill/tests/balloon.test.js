@@ -93,3 +93,43 @@ test('clear() resets a settled bet for the next round', () => {
   slot.clear();
   assert.equal(slot.status, 'none');
 });
+
+test('payouts are exact: $0.10 cashed at 1.05x pays $0.105, and the wallet keeps it', () => {
+  const { slot, events, at } = activeBet(3, { amount: 0.1, auto: 1.05 });
+  at(timeFor(1.06));
+  assert.equal(slot.status, 'cashed');
+  assert.equal(events[0][1].payout, 0.105);
+  const w = new BF.Wallet(1);
+  w.debit(0.1);
+  w.credit(0.105);
+  assert.equal(w.balance, 1.005);
+});
+
+test('manual cash-out opens at 1.01x, so it always pays more than the stake', () => {
+  const { balloon, slot, at } = activeBet(50, { amount: 10 });
+  at(timeFor(1.005));
+  assert.equal(slot.canCashOut(balloon), false);
+  assert.equal(slot.cashOut(balloon), false);
+  at(timeFor(1.02));
+  assert.equal(slot.canCashOut(balloon), true);
+  assert.equal(slot.cashOut(balloon), true);
+  assert.ok(slot.result.payout > 10);
+});
+
+test('max win: a big bet is cashed out at MAX_WIN ÷ stake when the balloon gets there', () => {
+  const { slot, events, at } = activeBet(500, { amount: 10000, auto: 100 });
+  assert.equal(slot.winCap(), 25);
+  at(timeFor(30));
+  assert.equal(slot.status, 'cashed');
+  assert.equal(events[0][1].multiplier, 25);
+  assert.equal(events[0][1].payout, C.MAX_WIN);
+  assert.equal(events[0][1].capped, true);
+  const low = activeBet(500, { amount: 10000, auto: 2 });
+  low.at(timeFor(3));
+  assert.equal(low.events[0][1].multiplier, 2, 'a lower auto target is untouched');
+  assert.equal(low.events[0][1].capped, false);
+  const manual = activeBet(500, { amount: 10000 });
+  manual.at(timeFor(24));
+  manual.slot.cashOut(manual.balloon);
+  assert.ok(manual.slot.result.payout <= C.MAX_WIN);
+});

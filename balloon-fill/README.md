@@ -29,6 +29,13 @@ While a round is running you can queue a bet for the next round ("Bet Next Round
 | **96% (default)** | 96.0% | 96.0% | 96.0% |
 | 95% | 95.0% | 95.0% | 95.0% |
 
+## Money and limits
+- **Exact payouts:** the wallet keeps 1/10,000-dollar units, so stake × multiplier is never rounded to the cent ($0.10 at 1.05x pays $0.105) and the cash RTP equals the table above at every stake.
+- **Max win** (`MAX_WIN`, $250,000 per bet): a bet is cashed out automatically at MAX_WIN ÷ stake if the balloon gets there. Cashing out at any multiplier returns the RTP, so this never lowers it.
+- **Manual cash-out opens at 1.01x**, so a cash-out always pays more than the stake.
+- **Closing the page:** unlocked bets are refunded; locked bets are settled on return exactly as the round played out.
+- The live feed's other players are simulated and labelled as such.
+
 ## Rewards
 - **Daily bonus**: $100 on day 1, +$50 per consecutive day up to $500; a missed day resets the streak. Level 20 doubles it.
 - **Daily missions**: 3 per day from a pool of 7, the same for everyone on a given day; rewards chips + XP.
@@ -68,7 +75,7 @@ settings so the published RTP and limits always match the game.
 | `balloonView.js` | Renders a shared balloon + the player's bet (inflation, wobble, pop / float-away, buttons) |
 | `wallet.js`, `progress.js`, `skins.js` | Balance, XP/levels/perks, cosmetic skins |
 | `rewards.js` | Daily bonus, daily missions, personal records (no DOM) |
-| `feed.js` | Live feed + simulated crowd playing the same rounds (replace with a websocket) |
+| `feed.js` | Demo feed + simulated crowd playing the same rounds, labelled as simulated (replace with a websocket) |
 | `audio.js` | Synthesized SFX; `BF.sound.useFile(name, url)` to use real audio files |
 | `particles.js` | Canvas particles (pop shards, coins, golden glitter, confetti) |
 | `storage.js` | localStorage persistence (safe if storage is blocked) |

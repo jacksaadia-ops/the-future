@@ -6,7 +6,9 @@
     emit(evt, payload) { (this._handlers[evt] || []).forEach((fn) => fn(payload)); }
   }
 
-  const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Cents as usual; a sub-cent remainder (e.g. $0.10 × 1.05 = $0.105) is shown rather than rounded away.
+  const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  const SCALE = 10000; // wallet precision: 1/10,000 of a dollar
 
   BF.util = {
     Emitter,
@@ -14,6 +16,10 @@
     round2: (v) => Math.round(v * 100) / 100,
     floor2: (v) => Math.floor(v * 100 + 1e-9) / 100,
     money: (v) => '$' + moneyFmt.format(v),
+    /** Exact payout: stake in cents × multiplier in hundredths, never rounded to the cent. */
+    payout: (amount, multiplier) => (Math.round(amount * 100) * Math.floor(multiplier * 100 + 1e-7)) / SCALE,
+    toUnits: (v) => Math.round(v * SCALE),
+    SCALE,
     /** RTP as a label without needless decimals: 0.955 → "95.5%", 0.97 → "97%". */
     rtp: (r) => `${+(r * 100).toFixed(2)}%`,
     mult: (v) => (v >= 1000 ? Math.floor(v).toLocaleString('en-US') : v.toFixed(2)) + 'x',

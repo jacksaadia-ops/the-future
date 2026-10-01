@@ -58,6 +58,8 @@
       $('#balance-value').textContent = money(this.wallet.balance);
       $('#rtp-value').textContent = BF.util.rtp(C.RTP);
       if (refund) this.toast(`${money(refund)} from unlocked bets refunded`, 'info');
+      this.away = {}; // locked bets by balloon, saved so a closed page still gets settled
+      if (saved.activeBets && saved.activeBets.length) this.settleAway(saved.activeBets);
 
       this.engine.start(performance.now());
       this.frame = this.frame.bind(this);
@@ -95,6 +97,13 @@
 
       e.on('locked', ({ balloons }) => {
         this.slots.forEach((slot) => slot.activate());
+        this.slots.forEach((slot, i) => {
+          if (!slot.isActive) return;
+          const b = balloons[i];
+          this.away[i] = { roundNo: this.engine.roundNo, balloon: i, amount: slot.amount, auto: slot.autoTarget,
+            popMultiplier: b.popMultiplier, maxes: b.maxes, maxMultiplier: b.maxMultiplier };
+        });
+        this.save(true);
         balloons.forEach((b, i) => {
           this.views[i].onLocked(b, this.slots[i].isActive);
           if (b.golden) {
@@ -164,6 +173,8 @@
     }
 
     finishBet(slot, res, golden) {
+      delete this.away[slot.index];
+      this.save(true); // settled: must not be settled again after a reload
       const gained = this.progress.awardRound({
         bet: slot.amount, won: res.won, multiplier: res.multiplier, streak: this.streak, golden,
       });
@@ -325,7 +336,9 @@
           : { mode: 'start', label: 'Place Bet', sub: money(view.bet) };
       }
       if (slot.isActive && phase === 'flying' && b && b.isFilling) {
-        return { mode: 'cash', label: 'Cash Out', sub: money(slot.potentialWin(b)) };
+        return slot.canCashOut(b)
+          ? { mode: 'cash', label: 'Cash Out', sub: money(slot.potentialWin(b)) }
+          : { mode: 'cash', label: 'Cash Out', sub: `from ${mult(C.MIN_CASHOUT)}`, disabled: true };
       }
       if (slot.isActive) return { mode: 'locked', label: 'Bet Locked', sub: money(slot.amount), disabled: true };
       if (slot.queued) return { mode: 'queued', label: 'Cancel Next Bet', sub: `${money(slot.queued.amount)} next round` };
@@ -839,10 +852,39 @@
       setTimeout(() => el.remove(), 3300);
     }
 
-    save() {
+    /**
+     * Settles bets that were locked in when the page closed, exactly as the
+     * round would have: an auto cash-out (or the max-win cap) pays if the
+     * balloon reached it, a balloon that hit the maximum pays it, anything
+     * else was still in when the balloon popped and is lost.
+     */
+    settleAway(bets) {
+      bets.forEach((a) => {
+        const slot = new BF.BetSlot(a.balloon);
+        slot.amount = a.amount;
+        const winCap = slot.winCap(a.maxMultiplier);
+        const target = Math.min(a.auto || Infinity, winCap);
+        const reached = a.maxes || target <= a.popMultiplier;
+        let paidAt = null;
+        if (target < a.maxMultiplier && reached) paidAt = target;
+        else if (a.maxes) paidAt = winCap;
+        const label = `Round #${a.roundNo}, Balloon ${a.balloon + 1}`;
+        if (paidAt) {
+          const pay = BF.util.payout(a.amount, paidAt);
+          this.wallet.credit(pay);
+          this.toast(`${label} finished while you were away: cashed out at ${mult(paidAt)}, ${money(pay)} paid.`, 'win');
+        } else {
+          this.toast(`${label} finished while you were away: it popped at ${mult(a.popMultiplier)} before ${a.auto ? `your ${mult(a.auto)} auto cash-out` : 'a cash-out (no auto cash-out was set)'}. ${money(a.amount)} lost.`, 'info');
+        }
+      });
+      this.save(true);
+    }
+
+    save(now = false) {
       clearTimeout(this.saveTimer);
-      this.saveTimer = setTimeout(() => {
+      const write = () => {
         BF.storage.save({
+          activeBets: Object.values(this.away || {}),
           balance: this.wallet.balance,
           openBets: this.slots.reduce((sum, s) => sum + (s.status === 'placed' ? s.amount : 0), 0),
           progress: this.progress.toJSON(),
@@ -854,7 +896,9 @@
           sound: BF.sound.enabled,
           settings: this.views.map((v) => v.settings),
         });
-      }, 250);
+      };
+      if (now) write();
+      else this.saveTimer = setTimeout(write, 250);
     }
   }
 

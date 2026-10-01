@@ -10,7 +10,8 @@
  *         'lost' {multiplier}
  */
 (function () {
-  const { Emitter, floor2, round2 } = BF.util;
+  const C = BF.CONFIG;
+  const { Emitter, floor2, payout } = BF.util;
 
   class BetSlot extends Emitter {
     constructor(index) {
@@ -68,10 +69,12 @@
     resolve(balloon, elapsed) {
       if (!this.isActive || !balloon) return;
       const cap = balloon.maxMultiplier;
-      if (this.autoTarget && this.autoTarget < cap) {
-        const t = balloon.timeFor(this.autoTarget);
+      const winCap = this.winCap(cap);
+      const target = Math.min(this.autoTarget || Infinity, winCap);
+      if (target < cap) {
+        const t = balloon.timeFor(target);
         if (t <= elapsed && t <= balloon.endTimeMs) {
-          this._win(this.autoTarget, true, false);
+          this._win(target, true, target === winCap && target !== this.autoTarget);
           return;
         }
       }
@@ -81,18 +84,28 @@
 
     /** Manual cash-out at the balloon's current multiplier. */
     cashOut(balloon) {
-      if (!this.isActive || !balloon || !balloon.isFilling) return false;
-      this._win(Math.max(1, floor2(balloon.multiplier)), false, false);
+      if (!this.canCashOut(balloon)) return false;
+      this._win(Math.min(floor2(balloon.multiplier), this.winCap(balloon.maxMultiplier)), false, false);
       return true;
     }
 
+    /** Manual cash-out opens at MIN_CASHOUT, so it always pays more than the stake. */
+    canCashOut(balloon) {
+      return this.isActive && !!balloon && balloon.isFilling && floor2(balloon.multiplier) >= C.MIN_CASHOUT;
+    }
+
+    /** Highest multiplier this bet can be paid: the balloon's maximum or MAX_WIN ÷ stake. */
+    winCap(max = C.MAX_MULTIPLIER) {
+      return this.amount > 0 ? Math.min(max, floor2(C.MAX_WIN / this.amount)) : max;
+    }
+
     potentialWin(balloon) {
-      return balloon ? round2(this.amount * Math.max(1, floor2(balloon.multiplier))) : this.amount;
+      return balloon ? payout(this.amount, Math.max(1, Math.min(floor2(balloon.multiplier), this.winCap(balloon.maxMultiplier)))) : this.amount;
     }
 
     _win(multiplier, auto, capped) {
       this.status = 'cashed';
-      this.result = { won: true, multiplier, payout: round2(this.amount * multiplier), auto, capped };
+      this.result = { won: true, multiplier, payout: payout(this.amount, multiplier), auto, capped };
       this.emit('cashout', this.result);
     }
 

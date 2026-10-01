@@ -130,6 +130,9 @@ function build() {
   L(`| Long-flight speed-up | above ${C.WARP_FROM}x the flight clock runs ${C.WARP_SPEEDUP}× faster (same mapping for every balloon; pop points and payouts unchanged) |`);
   L(`| Auto bet | ${C.AUTO_BET ? `on, up to ${C.AUTO_BET_MAX_ROUNDS} rounds (operator setting)` : 'off (operator setting)'} |`);
   L(`| Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |`);
+  L(`| Manual cash-out | from ${C.MIN_CASHOUT.toFixed(2)}x, so a cash-out always pays more than the stake |`);
+  L(`| Settlement | exact: stake (whole cents) × multiplier (0.01x steps) is paid to 1/10,000 dollar and never rounded to the cent (e.g. 0.10 × 1.05x = 0.105), so the cash return equals the multiplier return at every stake |`);
+  L(`| Maximum win per bet | ${C.MAX_WIN.toLocaleString('en-US')}, stake included: a bet is cashed out automatically at MAX_WIN ÷ stake if the balloon gets there (RTP unchanged, see §7) |`);
   L(`| Maximum multiplier | ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (balloon pays out at this value if it survives) |`);
   L(`| Golden chance | ${pct(C.GOLDEN_CHANCE, 2)} per balloon, independent, revealed only after bets lock |`);
   L(`| Golden speed | ${C.GOLDEN_SPEED}× (same pop point and odds as a normal balloon; it gets there sooner) |`);
@@ -168,8 +171,8 @@ function build() {
   L();
   L('- **Theory**: every auto cash-out target, on golden and normal balloons, returns k. Simulated with a 2.00x target on normal');
   L('  balloons and a 5.00x target on golden ones.');
-  L('- **Lowest possible play**: manual cash-out at the very start (paid 1.00x after rounding down to the cent) returns k / 1.01.');
-  L('  Manual cash-outs in general return between k/1.01 and k because the multiplier is rounded down to the cent.');
+  L(`- **Manual cash-outs** open at ${C.MIN_CASHOUT.toFixed(2)}x and are paid the multiplier rounded down to 0.01x, so they return`);
+  L('  slightly less than k (at most 1%, at the very first cash-out point); no play returns more than k.');
   L();
 
   L(`## 5. Detail for the default ${G.util.rtp(C.RTP)} setting`);
@@ -215,9 +218,11 @@ function build() {
   L('## 7. Exposure');
   L();
   L(`- Maximum multiplier on a normal balloon: ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (probability ${pct(pReach(C.MAX_MULTIPLIER, main.k), 4)} per balloon).`);
-  L(`- Maximum single payout at the current bet limit: ${(C.MAX_BET * C.MAX_MULTIPLIER).toLocaleString('en-US')} (bet ${C.MAX_BET.toLocaleString('en-US')} × ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x).`);
-  L('- **Recommendation:** add an operator-configurable maximum win per bet (a common requirement for operators),');
-  L('  and state it in the game rules. Capping winnings reduces RTP slightly for the highest targets; this report must then be regenerated.');
+  L(`- Maximum win per bet: ${C.MAX_WIN.toLocaleString('en-US')} (operator setting \`MAX_WIN\`), stake included. Without it the largest payout would be`);
+  L(`  ${(C.MAX_BET * C.MAX_MULTIPLIER).toLocaleString('en-US')} (bet ${C.MAX_BET.toLocaleString('en-US')} × ${C.MAX_MULTIPLIER.toLocaleString('en-US')}x).`);
+  L(`- How it is applied: each bet is cashed out automatically at min(auto target, ${C.MAX_WIN.toLocaleString('en-US')} ÷ stake rounded down to 0.01x)`);
+  L(`  (e.g. ${Math.floor((C.MAX_WIN / C.MAX_BET) * 100) / 100}x on a ${C.MAX_BET.toLocaleString('en-US')} bet). A cash-out at any multiplier x is reached with probability k / x,`);
+  L('  so it returns k: the cap never lowers the RTP, and no payout can exceed the max win.');
   L();
 
   L('## 8. Open items before certification');
@@ -225,9 +230,9 @@ function build() {
   L('- Move outcome generation, the round clock, bet acceptance and cash-out confirmation to the server; certify the RNG.');
   L('- Provably fair is implemented (server seed committed by hash before betting, first 3 bettors\' client seeds, per-round verification in the game).');
   L('  In production the seeds must be generated and held on the server, and the verification page served from outside the game client.');
-  L('- Disconnection: a bet that is locked in must keep running and still honour auto cash-out if the player disconnects.');
-  L('  (This client-only build refunds bets that were not yet locked and forfeits bets that were in flight.)');
-  L('- Maximum win per bet (see §7), responsible-gambling controls, and jurisdiction-specific disclosures.');
+  L('- Disconnection: this build refunds bets that were not yet locked, and settles locked bets when the player returns exactly as the');
+  L('  round played out (auto cash-out or max-win cap if reached, otherwise lost). In production this settlement belongs on the server.');
+  L('- Responsible-gambling controls and jurisdiction-specific disclosures (e.g. autoplay, round speed) for the chosen market.');
   L();
   return lines.join('\n');
 }

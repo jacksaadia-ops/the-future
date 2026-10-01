@@ -42,6 +42,14 @@ window.BF = window.BF || {};
 
     MAX_MULTIPLIER: 10000,
 
+    // Most one bet can pay, stake included. A bet whose stake × multiplier would
+    // pass it is cashed out automatically at MAX_WIN ÷ stake (rounded down to
+    // 0.01x). Cashing out at any multiplier returns the RTP, so this never cuts it.
+    MAX_WIN: 250000,
+
+    // Smallest manual cash-out: a cash-out always pays more than the stake.
+    MIN_CASHOUT: 1.01,
+
     // Long flights speed up: once a normal balloon passes WARP_FROM, its clock
     // runs WARP_SPEEDUP× faster. Pop points (and therefore odds) are unchanged;
     // rare high-flyers just finish sooner. Every balloon uses the same mapping.

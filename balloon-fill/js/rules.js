@@ -37,7 +37,7 @@
 
       <h3>Cashing out</h3>
       <ul>
-        <li><b>Manual:</b> pays the multiplier shown when your cash-out is received, rounded down to the nearest 0.01x.</li>
+        <li><b>Manual:</b> available from ${fx(C.MIN_CASHOUT)}, so a cash-out always pays more than your bet. It pays the multiplier shown when your cash-out is received, rounded down to the nearest 0.01x.</li>
         <li><b>Auto cash-out:</b> pays exactly your target multiplier if the balloon reaches it. Targets can be set from 1.01x in steps of 0.01x.</li>
         <li>Some balloons pop immediately at 1.00x (${pct(f.instant)} of balloons at this RTP). Bets on those balloons are lost.</li>
       </ul>
@@ -53,8 +53,8 @@
       <table class="rules-table">
         <tr><th>Return to player (RTP)</th><td><b>${pct(f.rtp, 2)}</b></td></tr>
         <tr><th>Any balloon, any cash-out target</th><td>${pct(f.k)}</td></tr>
-        <tr><th>Lowest possible return (cashing out at 1.00x)</th><td>${pct(f.min)}</td></tr>
         <tr><th>Maximum multiplier</th><td>${C.MAX_MULTIPLIER.toLocaleString('en-US')}x (paid automatically if reached)</td></tr>
+        <tr><th>Maximum win per bet</th><td>${money(C.MAX_WIN)}, stake included. A bet is cashed out automatically at ${money(C.MAX_WIN)} ÷ stake (e.g. ${fx(Math.floor((C.MAX_WIN / C.MAX_BET) * 100) / 100)} on a ${money(C.MAX_BET)} bet) if the balloon gets there. Cashing out never lowers the RTP.</td></tr>
         <tr><th>Bet per balloon</th><td>${money(C.MIN_BET)} – ${money(C.MAX_BET)}</td></tr>
       </table>
       <p class="rules-note">The RTP is the theoretical long-run return. It is the same for every cash-out target and for golden and normal balloons. Actual results in any session will vary.</p>
@@ -66,8 +66,9 @@
       <h3>Other rules</h3>
       <ul>
         <li><b>Provably fair:</b> each round's result comes from a server seed that is locked in (by publishing its SHA-256 fingerprint) before betting opens, combined with the client seeds of the first ${BF.fair ? BF.fair.CLIENT_SEEDS : 3} players to bet. After the round the server seed is revealed so anyone can verify the result. Open the shield icon for details.</li>
-        <li>Winnings are paid to your balance immediately and shown rounded to the cent.</li>
-        <li><b>Disconnection (play-money demo):</b> if you close the page, bets that were not yet locked are refunded; bets on balloons that were filling are lost.</li>
+        <li>Winnings are paid to your balance immediately and exactly: stake × multiplier is never rounded to the cent (e.g. $0.10 × 1.05x pays $0.105).</li>
+        <li><b>Disconnection:</b> if you close the page, bets that were not yet locked are refunded. Locked bets are settled when you come back, exactly as the round played out: an auto cash-out (or the max win) pays if the balloon reached it; otherwise the bet was still in when it popped and is lost.</li>
+        <li>The Demo Feed's other players are simulated to show how the game looks with a crowd. Your own bets in it are real.</li>
         <li>Malfunction voids all pays and plays.</li>
       </ul>`;
   }

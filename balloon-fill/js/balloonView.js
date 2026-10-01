@@ -106,7 +106,7 @@
 
     onCashout(result) {
       this.el.classList.add('is-cashed');
-      this.r.badge.innerHTML = `<b>${result.capped ? 'Max win' : 'Cashed'} ${mult(result.multiplier)}</b><span>+${money(result.payout)}</span>`;
+      this.r.badge.innerHTML = `<b>${result.capped ? 'Max win' : 'Cashed'} ${mult(result.multiplier)}</b><span>won ${money(result.payout)}</span>`;
       this.r.badge.className = 'cash-badge show';
     }
 

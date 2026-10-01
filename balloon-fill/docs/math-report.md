@@ -1,8 +1,8 @@
 # Balloon Fill — Game Math Report (PAR sheet)
 
-Generated 2026-10-01 by `tools/math-report.js` from code version `abd1f57 (with uncommitted changes)`.
+Generated 2026-10-01 by `tools/math-report.js` from code version `8af1375`.
 All theoretical values are computed exactly from the game code; simulated values run the real settlement code.
-Simulation size: 2,000,000 balloons per RTP setting.
+Simulation size: 10,000,000 balloons per RTP setting.
 
 > Draft for internal review and test-lab submission. Not legal advice; RTP rules and disclosure
 > requirements vary by jurisdiction and must be confirmed with the certifying lab.
@@ -24,6 +24,9 @@ multiplier at which it is cashed out (manually or by auto cash-out) before its b
 | Long-flight speed-up | above 5x the flight clock runs 3× faster (same mapping for every balloon; pop points and payouts unchanged) |
 | Auto bet | on, up to 100 rounds (operator setting) |
 | Multiplier resolution | 0.01 (pop points, auto cash-out targets and manual cash-outs are whole cents; manual cash-outs round down) |
+| Manual cash-out | from 1.01x, so a cash-out always pays more than the stake |
+| Settlement | exact: stake (whole cents) × multiplier (0.01x steps) is paid to 1/10,000 dollar and never rounded to the cent (e.g. 0.10 × 1.05x = 0.105), so the cash return equals the multiplier return at every stake |
+| Maximum win per bet | 250,000, stake included: a bet is cashed out automatically at MAX_WIN ÷ stake if the balloon gets there (RTP unchanged, see §7) |
 | Maximum multiplier | 10,000x (balloon pays out at this value if it survives) |
 | Golden chance | 1.00% per balloon, independent, revealed only after bets lock |
 | Golden speed | 1.5× (same pop point and odds as a normal balloon; it gets there sooner) |
@@ -52,15 +55,15 @@ k is the operator RTP, so every cash-out target on every balloon returns exactly
 
 | RTP setting | k (return, any target) | Instant-pop rate | Theory | Simulated, 95% CI | Lowest possible play |
 | --- | --- | --- | --- | --- | --- |
-| 95% | 95.000% | 5.941% | 95.0000% | 94.929% ± 0.140% | 94.059% |
-| 96% | 96.000% | 4.950% | 96.0000% | 95.979% ± 0.140% | 95.050% |
-| 97% | 97.000% | 3.960% | 97.0000% | 97.065% ± 0.141% | 96.040% |
-| 98% | 98.000% | 2.970% | 98.0000% | 97.913% ± 0.141% | 97.030% |
+| 95% | 95.000% | 5.941% | 95.0000% | 95.022% ± 0.063% | 94.059% |
+| 96% | 96.000% | 4.950% | 96.0000% | 95.950% ± 0.063% | 95.050% |
+| 97% | 97.000% | 3.960% | 97.0000% | 97.040% ± 0.063% | 96.040% |
+| 98% | 98.000% | 2.970% | 98.0000% | 97.908% ± 0.063% | 97.030% |
 
 - **Theory**: every auto cash-out target, on golden and normal balloons, returns k. Simulated with a 2.00x target on normal
   balloons and a 5.00x target on golden ones.
-- **Lowest possible play**: manual cash-out at the very start (paid 1.00x after rounding down to the cent) returns k / 1.01.
-  Manual cash-outs in general return between k/1.01 and k because the multiplier is rounded down to the cent.
+- **Manual cash-outs** open at 1.01x and are paid the multiplier rounded down to 0.01x, so they return
+  slightly less than k (at most 1%, at the very first cash-out point); no play returns more than k.
 
 ## 5. Detail for the default 96% setting
 
@@ -118,16 +121,18 @@ Golden balloons follow exactly the same table.
 ## 7. Exposure
 
 - Maximum multiplier on a normal balloon: 10,000x (probability 0.0096% per balloon).
-- Maximum single payout at the current bet limit: 100,000,000 (bet 10,000 × 10,000x).
-- **Recommendation:** add an operator-configurable maximum win per bet (a common requirement for operators),
-  and state it in the game rules. Capping winnings reduces RTP slightly for the highest targets; this report must then be regenerated.
+- Maximum win per bet: 250,000 (operator setting `MAX_WIN`), stake included. Without it the largest payout would be
+  100,000,000 (bet 10,000 × 10,000x).
+- How it is applied: each bet is cashed out automatically at min(auto target, 250,000 ÷ stake rounded down to 0.01x)
+  (e.g. 25x on a 10,000 bet). A cash-out at any multiplier x is reached with probability k / x,
+  so it returns k: the cap never lowers the RTP, and no payout can exceed the max win.
 
 ## 8. Open items before certification
 
 - Move outcome generation, the round clock, bet acceptance and cash-out confirmation to the server; certify the RNG.
 - Provably fair is implemented (server seed committed by hash before betting, first 3 bettors' client seeds, per-round verification in the game).
   In production the seeds must be generated and held on the server, and the verification page served from outside the game client.
-- Disconnection: a bet that is locked in must keep running and still honour auto cash-out if the player disconnects.
-  (This client-only build refunds bets that were not yet locked and forfeits bets that were in flight.)
-- Maximum win per bet (see §7), responsible-gambling controls, and jurisdiction-specific disclosures.
+- Disconnection: this build refunds bets that were not yet locked, and settles locked bets when the player returns exactly as the
+  round played out (auto cash-out or max-win cap if reached, otherwise lost). In production this settlement belongs on the server.
+- Responsible-gambling controls and jurisdiction-specific disclosures (e.g. autoplay, round speed) for the chosen market.
 
